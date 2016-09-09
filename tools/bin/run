@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# This should point to the configuration file.
+CONFIG=configuration.mm
+
+# Get the benchmark that the user wants to run. If the user only specifies the
+# benchmark name it will also work.
+BENCH=$1
+if [[ -e /home/user/workspace/assignment1/powerstone/$BENCH.c ]]
+then
+  BENCH=/home/user/workspace/assignment1/powerstone/$BENCH.c
+fi
+
+# Determine a proper name for a log directory.
+OUTPUT_DIR=output-`basename $BENCH`
+
+# Get any additional compiler flags.
+FLAGS=${@:2}
+
+# Use magic to find the amount of clusters specified in the machine model file.
+CLUSTERS=`grep "\*\*\*Clusters\*\*\*" $CONFIG | rev | cut -f1 -d' '`
+
+# Check that the line was found.
+if [[ -z "$CLUSTERS" ]]
+then
+  echo "Could not find the ***Clusters*** line in your configuration file."
+  exit 1
+fi
+
+# Check that the value is acceptable.
+if [[ "1 2 4" =~ $CLUSTERS ]]
+then
+  true
+else
+  echo "The number of clusters must be 1, 2 or 4."
+  exit 1
+fi
+
+# Determine compiler flags.
+CFLAGS="-fmm=`pwd`/$CONFIG -width $CLUSTERS -c99inline -ms -mas_g -mas_G $FLAGS $BENCH -o a.out"
+
+# Make a clean directory for the log files.
+rm -rf $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR
+
+# Move into the output directory and populate it with some symlinks.
+cd $OUTPUT_DIR
+ln -s /home/user/workspace/assignment1/.vex.cfg vex.cfg
+ln -s $BENCH `basename $BENCH`
+
+# Echo the compiler command line.
+echo "Compiler command line: cc $CFLAGS"
+
+# Run the compiler.
+if /home/user/tools/vex-3.43/bin/cc $CFLAGS
+then
+  ./a.out
+fi
+
+# Go back to the run directory.
+cd ..

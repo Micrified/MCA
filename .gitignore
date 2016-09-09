@@ -1,0 +1,28 @@
+.directory
+
+# ASSIGNMENT 1
+/assignment1/*
+!/assignment1/.vex.cfg
+!/assignment1/powerstone
+!/assignment1/configurations
+
+/assignment1/powerstone/*
+!/assignment1/powerstone/sys
+!/assignment1/powerstone/*.c
+!/assignment1/powerstone/*.h
+
+/assignment1/configurations/*
+
+!/assignment1/configurations/example-2-issue
+/assignment1/configurations/example-2-issue/*
+!/assignment1/configurations/example-2-issue/configuration.mm
+
+!/assignment1/configurations/example-2-issue-2-cluster
+/assignment1/configurations/example-2-issue-2-cluster/*
+!/assignment1/configurations/example-2-issue-2-cluster/configuration.mm
+
+# ASSIGNMENT 2
+# Everything included.
+
+# TOOLS
+# Everything included.

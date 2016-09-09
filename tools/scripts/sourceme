@@ -1,0 +1,8 @@
+# This script is sourced from .bashrc!
+
+# Set aliasses for setting up the Xilinx and ModelSim environments.
+alias sx="source /home/user/workspace/tools/scripts/sx"
+alias sm="source /home/user/workspace/tools/scripts/sm"
+
+# Append the tools bin directory to the path.
+export PATH=$PATH:/home/user/workspace/tools/bin
