@@ -1,0 +1,129 @@
+diff -rupN --exclude tech clean/grlib-gpl-1.3.7-b4144/bin/Makefile grlib-gpl-1.3.7-b4144/bin/Makefile
+--- clean/grlib-gpl-1.3.7-b4144/bin/Makefile	2014-04-16 16:51:05.000000000 +0200
++++ grlib-gpl-1.3.7-b4144/bin/Makefile	2016-08-18 10:15:11.493927024 +0200
+@@ -303,7 +303,7 @@ vsim-fix:
+ 	@mv make.work2 make.work
+ 
+ modelsim: compile.vsim
+-	@MTI_DEFAULT_LIB_TYPE=0 vsim -c -quiet -do "do libs.do; quit"
++	MTI_DEFAULT_LIB_TYPE=0 vsim -c -quiet -do "do libs.do; quit"
+ 
+ vsim-grlib: modelsim
+ 	make vsim
+@@ -654,7 +654,7 @@ ise-netgen-syn: $(TOP).ngd
+ ise-netgen-par:
+ 	netgen -s 1 -pcf $(TOP).pcf -rpw 100 -tpw 0 -ar Structure -tm $(TOP) \
+ 	-insert_pp_buffers true -w -dir netgen/par -ofmt vhdl -sim $(TOP).ncd $(TOP)_timesim.vhd
+-
++# 
+ ise-clean xst-clean:
+ 	-rm -rf xst *.srp xstmods *.twr *.pad _impact* coregen.log \
+ 	tmp.xst *.ngc __projnav* *.stx *.lso *.dhp automake.log \
+@@ -905,6 +905,9 @@ endif
+ ifeq ("$(PLANAHEAD_IMPL_STRATEGY)","")
+ PLANAHEAD_IMPL_STRATEGY="ParHighEffort"
+ endif
++ifeq ("$(MAP_COST_TABLE)","")
++MAP_COST_TABLE=1
++endif
+ 
+ ## Xilinx planAhead project properties that can be overrideen
+ ifeq ("$(GRLIB_XIL_PlanAhead_Simulator)","")
+@@ -984,16 +987,21 @@ endif
+ #	@echo "create_run synth_$(DESIGN) -flow {$(PLANAHEAD_SYNTH_FLOW)} -strategy {$(PLANAHEAD_SYNTH_STRATEGY)}" >> ./planahead/$(TOP)_planAhead.tcl
+ 	@echo "set_property steps.xst.args.netlist_hierarchy as_optimized [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
+ 	@echo "set_property strategy $(PLANAHEAD_SYNTH_STRATEGY) [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
++	@echo "set_property steps.xst.args.opt_level 1 [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
++	@echo "set_property steps.xst.args.resource_sharing yes [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
++	@echo "set_property steps.xst.args.equivalent_register_removal yes [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
++	@echo "set_property steps.xst.args.register_balancing no [get_runs synth_1]" >> ./planahead/$(TOP)_planAhead.tcl
+ 	@echo "# Elaborate design to be able to apply SDC to top level" >> ./planahead/$(TOP)_planAhead_run.tcl
+ 	@echo "launch_runs -jobs 1 synth_1" >> ./planahead/$(TOP)_planAhead_run.tcl
+-	@echo "wait_on_run -timeout 120 synth_1" >> ./planahead/$(TOP)_planAhead_run.tcl
++	@echo "wait_on_run -timeout 3200 synth_1" >> ./planahead/$(TOP)_planAhead_run.tcl
+ 	@echo "# Launch place and route" >> ./planahead/$(TOP)_planAhead_run.tcl
+ 	@echo "set_property strategy $(PLANAHEAD_IMPL_STRATEGY) [get_runs impl_1]" >> ./planahead/$(TOP)_planAhead_run.tcl
++	@echo "set_property steps.map.args.t $(MAP_COST_TABLE) [get_runs impl_1]" >> ./planahead/$(TOP)_planAhead_run.tcl
+ #	@echo "set_property steps.map.args.mt on [get_runs impl_1]" >> ./planahead/$(TOP)_planAhead_run.tcl
+ #	@echo "set_property steps.par.args.mt 4 [get_runs impl_1]" >> ./planahead/$(TOP)_planAhead_run.tcl
+ 	@echo "set_property steps.bitgen.args.m true [get_runs impl_1]" >> ./planahead/$(TOP)_planAhead_run.tcl
+ 	@echo "launch_runs -jobs 1 impl_1 -to_step Bitgen" >> ./planahead/$(TOP)_planAhead_run.tcl
+-	@echo "wait_on_run -timeout 120 impl_1" >> ./planahead/$(TOP)_planAhead_run.tcl
++	@echo "wait_on_run -timeout 1200 impl_1" >> ./planahead/$(TOP)_planAhead_run.tcl
+ ifeq ("$(PROTOBOARD)","zedBoard")
+ 	@echo "export_hardware [get_files ./planahead/xps_files/leon3_zedboard/leon3_zedboard.xmp] [get_runs impl_1] -bitstream" >> ./planahead/$(TOP)_planAhead_run.tcl
+ endif
+diff -rupN --exclude tech clean/grlib-gpl-1.3.7-b4144/lib/gaisler/sim/ddr3ram.vhd grlib-gpl-1.3.7-b4144/lib/gaisler/sim/ddr3ram.vhd
+--- clean/grlib-gpl-1.3.7-b4144/lib/gaisler/sim/ddr3ram.vhd	2014-04-16 16:51:32.000000000 +0200
++++ grlib-gpl-1.3.7-b4144/lib/gaisler/sim/ddr3ram.vhd	2016-08-18 11:59:30.288276717 +0200
+@@ -190,7 +190,7 @@ begin
+     assert resetn='0' report "RESETn raised with less than 200 us init delay" severity warning;
+     l0: loop
+       initdone <= false;
+-      wait until resetn/='0';
++      if (resetn = '0') then wait until resetn/='0'; end if;
+       assert cke='0' report "CKE not low when RESETn deasserted" severity warning;
+       wait until (resetn='0' or cke/='0') for 500 us;
+       if resetn='0' then next; end if;
+diff -rupN --exclude tech clean/grlib-gpl-1.3.7-b4144/lib/grlib/amba/ahbctrl.vhd grlib-gpl-1.3.7-b4144/lib/grlib/amba/ahbctrl.vhd
+--- clean/grlib-gpl-1.3.7-b4144/lib/grlib/amba/ahbctrl.vhd	2014-04-16 16:51:32.000000000 +0200
++++ grlib-gpl-1.3.7-b4144/lib/grlib/amba/ahbctrl.vhd	2016-08-18 10:15:11.493927024 +0200
+@@ -33,6 +33,7 @@ use grlib.config_types.all;
+ use grlib.config.all;
+ -- pragma translate_off
+ use grlib.devices.all;
++use grlib.testlib;
+ use std.textio.all;
+ -- pragma translate_on
+ 
+diff -rupN --exclude tech clean/grlib-gpl-1.3.7-b4144/lib/grlib/amba/devices.vhd grlib-gpl-1.3.7-b4144/lib/grlib/amba/devices.vhd
+--- clean/grlib-gpl-1.3.7-b4144/lib/grlib/amba/devices.vhd	2014-04-16 16:51:32.000000000 +0200
++++ grlib-gpl-1.3.7-b4144/lib/grlib/amba/devices.vhd	2016-08-18 10:15:11.494927059 +0200
+@@ -63,6 +63,7 @@ package devices is
+   constant VENDOR_CAL        : amba_vendor_type := 16#CA#;
+   constant VENDOR_CETON      : amba_vendor_type := 16#CB#;
+   constant VENDOR_EMBEDDIT   : amba_vendor_type := 16#EA#;
++  constant VENDOR_TUDELFT    : amba_vendor_type := 16#DE#;
+ 
+ -- Aeroflex Gaisler device ids
+ 
+@@ -328,6 +329,12 @@ package devices is
+   constant CONTRIB_CORE1        : amba_device_type := 16#001#;
+   constant CONTRIB_CORE2        : amba_device_type := 16#002#;
+ 
++-- TU Delft device IDs
++
++  constant TUDELFT_RVEX         : amba_device_type := 16#001#;
++  constant TUDELFT_UART         : amba_device_type := 16#002#;
++  constant TUDELFT_BRIDGE       : amba_device_type := 16#003#;
++
+ -- grlib system device ids
+ 
+   subtype system_device_type  is integer range 0 to 16#ffff#;
+@@ -848,6 +855,18 @@ package devices is
+       vendordesc        => C3E_DESC,
+       device_table      => c3e_device_table
+       );
++
++  constant TUDELFT_DESC : vendor_description :=   "TU Delft                ";
++  constant tudelft_device_table : device_table_type := (
++      TUDELFT_RVEX          => "r-VEX Processor                ",
++      TUDELFT_UART          => "Debug UART                     ",
++      TUDELFT_BRIDGE        => "Peripheral bridge              ",
++      others                => "Unknown Device                 ");
++  constant tudelft_lib : vendor_library_type := (
++      vendorid          => VENDOR_TUDELFT,
++      vendordesc        => TUDELFT_DESC,
++      device_table      => tudelft_device_table
++      );
+   
+   constant UNKNOWN_DESC : vendor_description :=  "Unknown vendor          ";
+ 
+@@ -880,6 +899,7 @@ package devices is
+     VENDOR_ACTEL       => actel_lib,
+     VENDOR_NASA        => nasa_lib,
+     VENDOR_S3          => s3_lib,
++    VENDOR_TUDELFT     => tudelft_lib,
+     others             => unknown_lib);
+ 
+   type system_table_type is array (0 to 4095) of device_description;

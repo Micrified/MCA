@@ -1,0 +1,620 @@
+# 
+#   xSTsim configuration
+# 
+# N.B. The command line options will override the parameters values specified here.
+# 
+# The 'accuracy' variable determines the accuracy of the models (IP and device dependent).
+# 
+# The 'trace_sep' parameter defines how trace information regarding IP models must be separated. Allowed values are:
+#   'prefix' print a prefix before each trace line indicating the IP model the line refers to
+#   'tab'    print a prefix and tabs before each trace line indicating the IP model the line refers to
+#   'header' print a header before each group of trace lines indicating the IP model the lines refer to
+# 
+# The 'trace' parameter specifies if trace is enabled and which information is traced.
+# The value of this parameter contained in the global section is a default value, that can be changed for individual IP models.
+# The meaning of the numerical value of this parameter is IP model dependent; the following table is valid for core models:
+#   0:  do not trace instructions
+#   1:  trace instructions
+#   2:  as 1 + symbols
+#   3:  as 2 + instructions encoding
+#   4:  as 4 + registers values
+#   5:  as 4 + time
+#   6:  as 5 + values of cycle counters
+#   7:  as 6 + details on operations regarding machine registers, control registers and memory
+# > 7:  as 7 + details on stages execution
+# 
+# The 'trace_only_jumps' parameter, if true, specifies that, for all core models that have instructions trace enabled, not all instructions are traced but
+# only the bundles that cause branches and the bundles target of branches. In case of exceptions and interrupts, the first bundles of the exception and
+# interrupt handlers are traced. This parameter is only valid for core models, and the value contained in the global section is a default value, that can
+# be changed for individual core models.
+# 
+# The 'trace_only_calls' parameter, if true, specifies that, for all core models that have instructions trace  enabled, not all instructions are traced but
+# only the bundles that cause function calls and the bundles target of function calls. In case of exceptions and interrupts, the first bundles of the
+#  exception and interrupt handlers are traced. This parameter is only valid for core models, and the value contained in the global section is a default
+# value, that can be changed for individual core models.
+# 
+# The 'trace_regs' and 'trace_cregs' parameters allow tracing also machine registers and control registers respectively for all core models that have
+# instructions trace enabled. The value of those parameters contained in the global section are default values, that can be changed for individual core
+# models. The meaning of the numerical value of those parameters is specified by the table below:
+#   0:  do not trace registers
+#   1:  trace only changed registers
+#   2:  trace all registers
+# > 2:  trace all registers with changed registers highlighted
+# 
+# The value of the 'highlight' (format string for all the highlighted text in the simulator output) must be in the format:
+# 
+#   [<foreground>],[<background>],[<bold>],[<underline>]
+# 
+# with no white space among fields.
+# Possible values for <foreground> and <background> are:
+# 
+#  'black', 'red', 'green', 'brown', 'blue', 'purple', 'cyan', 'grey', 'default'
+# 
+# Possible values for <bold> are 'b' (disabled) and 'B' (enabled).
+# Possible values for <underline> are 'u' (disabled) and 'U' (enabled).
+# 
+# The 'dump_stats' parameter defines which statistics must be dumped and the format to use. Its value must be a string composed of tokens of the type:
+# 
+#   '['[TYPE = <type>, ] [VERBOSITY = <verbosity>, ] [INC = <true/false>, ] [CFGIN = <cfgin>, ] [CFGOUT = <cfgout>]']'
+# 
+# where:
+#   <type>      describes the output format of the statistics dump; allowed values are 'text' and 'mcpath'; if not specified, the text dump format is used
+#   <verbosity> if present, specifies the verbosity level (allowed values are 'low', 'high' and 'pedantic', default value is 'high'); this parameter is
+#               ignored if the statistics dump type is 'mcpat'
+#   <inc>       tells the simulator to generate an incremental statistics dump ('true') or not ('false'); an incremental dump contains the difference
+#               between the previous dumped state and the new dumped state (useful if statistics are dumped during simulation and not only at the end of
+#               simulation; default value is 'no')
+#   <cfgin>     is the input configuration file path for the statistics dump
+#   <cfgout>    is the output configuration file path for the statistics dump
+
+infinite              1 << 62          # very large value (can be used for defining infinite values)
+mb                    1024 * 1024      # one megabyte
+biggest_address       0xffffffff       # the biggest value for an address
+invalid_pc            0xffffffff       # an invalid address for the PC
+ips                   "[st231 gpe]"    # list of IP model instances, in the format '['<ip> <id>']'
+accuracy              1                # level of accuracy of the IP models (>= 0)
+timeout               100000           # maximum number of main clock cycles between the current cycle and the next registered event
+verbosity             1                # verbosity level for messages (0: no messages, 1: very useful messages, 2: useful messages, >2: pedantic messages)
+warnings              1                # warnings level (0: very useful warnings, 1: useful warnings, >1: pedantic warnings)
+highlight             ",,B,"           # format string for all the highlighted text in the simulator output
+disasm                false            # specify if target executables must be disassembled (default value for core homonymous parameters)
+trace                 0                # specify if trace is enabled and which information will be traced (default value for IP homonymous parameters, see section comments)
+trace_only_jumps      false            # if true and instructions trace is enabled, only bundles immediately preceding and bundles immediately following jumps are traced (default value for core homonymous parameters, see section comments)
+trace_only_calls      false            # if true and instructions trace is enabled, only bundles immediately preceding and bundles immediately following function calls are traced (default value for core homonymous parameters, see section comments)
+trace_regs            0                # if and when instructions trace is enabled, specify if machine registers are traced and which information will be traced (default value for core homonymous parameters, see section comments)
+trace_cregs           0                # if and when instructions trace is enabled, specify if control registers are traced and which information will be traced (default value for core homonymous parameters, see section comments)
+symbolic_pc_len       30               # symbolic PC label string length in instruction trace
+trace_sep             "prefix"         # specify how trace information regarding IP models must be separated (see section comments)
+trace_start_cycle     0                # in tracing mode, don't start tracing until this cycle is reached
+trace_stop_cycle      infinite         # in tracing mode, stop tracing when this cycle is reached
+dump_dir              "."              # destination directory for all the dumps
+dump_name             "sim"            # base name of all the dumps (a suffix will be appended to this name)
+dump_log              false            # if true, dump the log of all the simulation to a file
+dump_perfs            false            # if true, dump simulator performance details to a file
+dump_msg_to_file      false            # if true, dump all the messages to a file
+dump_trc_to_file      false            # if true, dump the trace to files, if enabled
+multiple_trc_files    false            # if true, dump one trace file per IP model (if trace is enabled and dumped to files), if false only one trace file is dumped
+dump_stats            ""               # see section comment
+sim_debug_trace       "disabled"       # specify if and when debug information trace debug information related to simulation steps must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+events_debug_trace    "disabled"       # specify if and when debug information trace debug information related to events must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+clocks_debug_trace    "disabled"       # specify if and when debug information trace debug information related to clocks must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+ports_debug_trace     "disabled"       # specify if and when debug information trace debug information related to ports must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+ints_debug_trace      "disabled"       # specify if and when debug information trace debug information related to interrupts must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[system]
+# This section contains the configuration items regarding the whole system.
+# 
+# The main clock frequency is the clock frequency that is used for deriving all the frequencies of the IPs and devices contained in the system.
+# The frequency of an IP or a device is defined as the main clock frequency divided by an integer ratio.
+main_clock_freq    31500000000    # main clock frequency in Hz
+
+
+[gpe]
+# This section contains all the parameters related to the 'gpe' ST231 model.
+# 
+# The 'accuracy' variable determines the accuracy of the IP core and of some subsystem components (IP dependent).
+# 
+# The 'add_symbols_file' parameter can be used to specify the path of a file containing symbols to add to the symbol table. This file must be composed of
+# lines having the following format:
+#   <vaddr> <paddr> <type> <size> <symbol>
+# where <vaddr> is the virtual address related to the symbol, <paddr> is the physical address related to the symbol, <type> can be 'gd' (global data),
+# 'ld' (local data), 'gf' (global function), 'lf' (local function) or 'l' (instruction label), <size> is the size in bytes of the symbol and <symbol> is
+# the name of the symbol (string without spaces).
+# 
+# The quantity of information traced by the core model is defined by the value of the 'trace' parameter, according to the table below:
+#   0:  do not trace instructions
+#   1:  trace instructions
+#   2:  as 1 + symbols
+#   3:  as 2 + instructions encoding
+#   4:  as 4 + registers values
+#   5:  as 4 + time
+#   6:  as 5 + values of cycle counters
+#   7:  as 6 + details on operations regarding machine registers, control registers and memory
+# > 7:  as 7 + details on stages execution
+# 
+# 
+# The 'trace_only_jumps' parameter, if true, specifies that not all bundles are traced (if instructions trace is enabled) but only the bundles that cause branches
+# and the bundles target of branches. In case of exceptions and interrupts, the first bundles of the exceptions and interrupts handlers are traced.
+# 
+# The 'trace_only_calls' parameter, if true, specifies that not all bundles are traced (if instructions trace is enabled) but only the bundles that cause function
+# calls and the bundles target of function calls. In case of exceptions and interrupts, the first bundles of the exceptions and interrupts handlers are traced.
+# 
+# If and when instructions are traced, the 'trace_regs' and 'trace_cregs' parameters allow tracing also machine registers and control registers
+# respectively. The meaning of the numerical value of those parameters is specified by the table below:
+# 
+#   0:  do not trace registers
+#   1:  trace only changed registers
+#   2:  trace all registers
+# > 2:  trace all registers with changed registers highlighted
+# 
+# Simulation can be terminated prematurely using the 'exit_after_bundle' configuration parameter. The value assigned to this parameter must be a string
+# having tokens with the following format:
+#   '[<HT index> <bundle>]'
+# This token sets an exit condition at the end of bundle <bundle> (considered as incremental bundle index) executed by hardware thread having index <HT index>.
+# Simulation is exited when the first of these exit conditions is met.
+# If the core only supports a single hardware thread, a string containing only the index of the bundle where to exit simulation is also accepted.
+target_exec                  "vmlinux"                                   # target executable path (if any)
+target_args                  ""                                          # space-separated list of arguments for the ELF target executable (if any)
+load_elf_files               ""                                          # space-separated list of paths of ELF files that must be loaded (if any)
+symbol_table                 target_exec                                 # path of the symbol table (empty string if no symbol table is available)
+add_symbols_file             ""                                          # path of the file containing symbols to add to the symbol table (see section comments)
+copy_host_env                false                                       # true if the environment of the host must be copied into the memory of the target core
+add_env                      ""                                          # space-separated list of variables to add to the environment of the target core
+exit_on_infinite_excs        true                                        # if true, exit simulation if the exception handler contains an instruction that causes another exception leading to an infinite loop
+disasm                       _.disasm                                    # if true, generate a file containing the disassembled target executable
+trace                        _.trace                                     # specify if trace is enabled and which information will be traced (see section comments)
+trace_only_jumps             _.trace_only_jumps                          # if true and instructions trace is enabled, only bundle immediately preceding and bundle immediately following jumps are traced
+trace_only_calls             _.trace_only_calls                          # if true and instructions trace is enabled, only bundle immediately preceding and bundle immediately following function calls are traced
+trace_regs                   _.trace_regs                                # if and when instructions trace is enabled, specify if trace of machine registers is enabled and which information will be traced
+trace_cregs                  _.trace_cregs                               # if and when instructions trace is enabled, specify if trace of control registers is enabled and which information will be traced
+trace_start_cycle            _.trace_start_cycle                         # in tracing mode, don't start tracing until this cycle is reached
+trace_stop_cycle             _.trace_stop_cycle                          # in tracing mode, stop tracing when this cycle is reached
+trace_start_bundle           0                                           # in tracing mode, don't start tracing until this bundle is reached
+trace_stop_bundle            _.infinite                                  # in tracing mode, stop tracing when this bundle is reached
+trace_low_pc                 0                                           # value of the PC starting the trace window (if tracing is enabled)
+trace_high_pc                _.biggest_address                           # value of the PC ending the trace window (if tracing is enabled)
+trace_start_pc               _.invalid_pc                                # value of the PC where tracing must start (if enabled)
+trace_stop_pc                _.invalid_pc                                # value of the PC where tracing must be stopped (if enabled)
+trace_start_pc_count         if(trace_start_pc == _.invalid_pc, 0, 1)    # number of times the PC must be equal to the value of the 'trace_start_pc' parameter before starting tracing (if enabled)
+trace_stop_pc_count          1                                           # number of times the PC must be equal to the value of the 'trace_stop_pc' parameter before stopping tracing (if enabled)
+trace_excs                   if(_.verbosity >= 3, true, false)           # if true, trace exceptions even if instruction trace is not activated
+dump_stats_at                ""                                          # list of PC addresses and labels where statistics must be dumped
+dump_stats_every             0                                           # if not 0, statistics are dumped at the end of each interval composed of a number of bundles equal to this value
+exit_after_bundle            ""                                          # specify if simulation must be exited prematurely, see section comments
+accuracy                     _.accuracy                                  # level of accuracy of the subsystem models (>= 0)
+asm_lib                      ""                                          # path of a loadable module containing a custom ASM handler
+asm_handler                  ""                                          # function name of the custom ASM handler exported by asm_lib
+kernel_debug_trace           "on trace"                                  # specify if and when debug information related to the 'gpe' core model simulation kernel must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+decoder_debug_trace          "disabled"                                  # specify if and when debug information related to the 'gpe' core instruction decoder must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+excs_debug_trace             "always"                                    # specify if and when debug information related to the 'gpe' core model exceptions must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+regs_debug_trace             "disabled"                                  # specify if and when debug information related to the 'gpe' core model machine registers must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+cregs_debug_trace            "disabled"                                  # specify if and when debug information related to the 'gpe' core model control registers must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+oscalls_debug_trace          "always"                                    # specify if and when debug information related to the 'gpe' core model sim OS calls must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+bundle_events_debug_trace    "disabled"                                  # specify if and when debug information related to the bundle events generated by 'gpe' core must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[gpe.core]
+# The expression of the 'int_in_pins' parameter must be a string containing only the number of interrupt pins (if each interrupt line is connected 
+# to just one input pin) or the number of interrupt lines followed by a comma-separated list (in parentheses) of tokens, each token specifying how
+# many input pins are connected to an interrupt line and having the format:
+#   <l>: <n>
+# where <l> is the index of an interrupt line and <n> is the number of input pins connected to that interrupt line
+index                     0                                                         # IP identifier in the system (must be unique)
+clock_ratio               37                                                        # ratio between the main clock frequency and the IP clock frequency
+endianness                "little"                                                  # possible values are 'little', 'big' and 'auto' (from target files)
+num_of_hts                1                                                         # number of hardware threads (maximum value is 16)
+int_in_pins               num_of_hts                                                # definition of input interrupt pins (see section comments)
+taken_branch_penalty      1                                                         # number of core clock cycles lost in case of a taken branch
+untaken_branch_penalty    0                                                         # number of core clock cycles lost in case of an untaken branch
+oscalls_trap_address      symbol2(__.symbol_table, "__dotsyscall", _.invalid_pc)    # if this is an invalid address, don't do anything upon OS calls
+start_mode                "supervisor"                                              # possible values: 'user' and 'supervisor'
+boot_address              0x80002000                                                # boot address at reset; '_.biggest_address' means auto-detect from binary executable
+init_regs                 "auto"                                                    # if not "auto", initialize all the writable machine registers to this value
+
+
+[gpe.subsystem]
+# This section contains the configuration items regarding the IP subsystem.
+# 
+# The 'devices' parameter must contain the space-separated list of the complete identifiers (composed of <class name> + '.' + <device identifier>) of all
+# the device instances defined for the layer.
+# If a device complete identifier is preceded by a slash, this means that the all the occurrences of that device listed before the slashed identifier must
+# be removed from the list.
+# 
+# The 'devices_stack' parameter defines the devices stack for the layer. Its value must be a list containing tokens tokens having the following format:
+# 
+#    (L<level> <device> ... <device>)
+# 
+# where:
+#   <level>  is the stack level the token is describing (level 0 is the nearest to the core)
+#   <device> is the complete identifier of a device (given by its class identifier + '.' + the device identifier)
+# 
+# If a slashed device complete identifier is written between two of those tokens (or at the beginning or at the end of the list), this means that the all
+# the occurrences of that device listed before the slashed identifier must be removed from the list.
+# A level can be redefined: the last definition of a level is taken into account.
+# A level definition can contain no device identifiers: this means that all the devices previously defined for that level are removed.
+# 
+# The 'memory_dump_list' parameter defines the memory areas that must be dumped when simulation finishes. Its value must be a string composed of tokens of
+# the type:
+# 
+#   '('<path> <start> '-' <end>')'
+# 
+# where:
+#   <path>   is the path of the destination file (that will contain the dump of the memory area specified by  <start> and <end>)
+#   <start>  is the start address of the memory area to dump
+#   <end>    is the end address of the memory area to dump
+ibuff_enabled            true                                                                               # true if the instruction buffer must be enabled, false otherwise
+icache_enabled           true                                                                               # true if the instruction cache must be enabled, false otherwise
+dcache_enabled           false                                                                              # true if the data cache must be enabled, false otherwise
+wbuff_enabled            if(__.accuracy > 0, true, false)                                                   # true if the write buffer is enabled, false otherwise
+rombase                  0                                                                                  # base address of the ROM memory module
+romsize                  0x10000                                                                            # size in bytes of the ROM memory module
+rambase                  0x80000000                                                                         # base address of the RAM memory module
+ramsize                  0x8000000                                                                          # size in bytes of the RAM memory module
+address_ranges           "[" + tohex(_.gpe.subsystem.rombase) + " - " + \
+                            tohex(_.gpe.subsystem.rombase + _.gpe.subsystem.romsize - 1) + "]" + " " + \
+                          "[" + tohex(_.gpe.subsystem.rambase) + " - " + \
+                            tohex(_.gpe.subsystem.rambase + _.gpe.subsystem.ramsize - 1) + "]"              # list of address ranges the model uses
+devices_default          if(ibuff_enabled, " ibuff.d0", "") + \
+                         if(icache_enabled, " icache.d0", "") + \
+                         if(dcache_enabled, " dcache.d0", "") + \
+                         if(wbuff_enabled, " wbuff.d0", "") + \
+                         " st231_mmu.d0" + \
+                         " st231_cregs.d0" + \
+                         " " + addprefix("st231_intc.d0_", for(0, __.core.num_of_hts - 1)) + \
+                         " " + addprefix("st231_timers.d0_", for(0, __.core.num_of_hts - 1)) + \
+                         " icn.d mem.rom0 mem.ram0"                                                         # devices defined in layer 0 in the default case
+devices                  devices_default + " intgen.d0 framebuffer.d0"                                      # devices defined in layer 0
+devices_stack_default    if(ibuff_enabled, "(L10 ibuff.d0)", "") + \
+                         "(L12 st231_mmu.d0)" + \
+                         "(L16 st231_cregs.d0)" + \
+                         if(icache_enabled, "(L18 icache.d0)", "") + \
+                         if(dcache_enabled, "(L19 dcache.d0)", "") + \
+                         if(wbuff_enabled, "(L20 wbuff.d0)", "") + \
+                         "(L28 icn.d)" + \
+                         "(L32 mem.rom0 mem.ram0)"                                                          # stack of devices in the default case (layer 0)
+devices_stack            devices_stack_default + "(L26 intgen.d0)(L27 framebuffer.d0)"                      # devices stack (layer 0)
+memory_init_ranges       address_ranges                                                                     # list of memory ranges that must be initialized if memory initialization is activated
+memory_init_pattern      "random"                                                                           # if not "random", initialize memory ranges using this pattern (list of bytes)
+memory_dump_list         ""                                                                                 # list of memory ranges that must be dumped when simulation finishes (see section comments)
+clock_ratio              __.core.clock_ratio                                                                # ratio between the main clock frequency and the (default) clock frequency of the subsystem components
+
+
+[gpe.profiler]
+# This section contains parameters for defining what metrics should be profiled.
+# 
+# A profiler associates values of the chosen metrics to parts of the target application running on the core, showing how the different portions of the
+# target executable behave w.r.t. the selected metrics. A profiler also builds a call graph for each metric, which represents how a callee functions is
+# impacted by called functions (and vice versa).
+# One or more metrics can be profiled for each core model. There are some builtin metrics (e.g. 'CYCLES'), but the user can define its own metrics in an
+# external dll file.
+# 
+# The pre-defined metrics are:
+#   "CYCLES":              executed cycles considering idle cycles
+#   "ACTIVITY":            executed cycles without considering idle cycles
+#   "BUNDLES":             executed bundles
+#   "INSTRUCTIONS":        executed syllables
+#   "ICACHE_OPS":          instruction cache operations
+#   "ICACHE_HITS":         instruction cache hits
+#   "ICACHE_MISSES":       instruction cache misses
+#   "DCACHE_READ_OPS":     data cache operations
+#   "DCACHE_READ_HITS":    data cache hits
+#   "DCACHE_READ_MISSES":  data cache misses
+#   "DCACHE_WRITE_OPS":    data cache operations
+#   "DCACHE_WRITE_HITS":   data cache hits
+#   "DCACHE_WRITE_MISSES": data cache misses
+#   "DCACHE_OPS":          total number of data cache operations (read + write)
+#   "DCACHE_HITS":         total number of data cache hits (read + write)
+#   "DCACHE_MISSES":       total number of data cache misses (read + write)
+# 
+# The metric to profile can be chosen by adding its name to the 'metrics' parameter (which is a space-separated list of metric names). If one of the words
+# contained in the value of the 'metrics' parameter is not listed above, it is supposed to be the name of the function implementing a custom metric. This
+# function must be contained in the shared library whose path is specified by the 'custom_metrics_library' parameter.
+# 
+# The profile can be tuned by means of the two parameters 'pc_granularity' and 'poll_interval'. The first parameter is used to subsample the address
+# space: smaller values produce a finer assignment of samples to PCs but make simulation slower. The second parameter is used to set the number of bundles
+# executed between two consecutive invocations of the profiler: smaller values produce a more accurate assignment of samples to PCs but slow down
+# simulation. Note that large values for this parameter are safe to use, since the profiler is always invoked when branches are executed.
+# 
+# The 'branch_call_equivalence' parameter can be used to build a branch graph instead of a classical call graph. If this parameter is true, all branches
+# (including exceptions) are seen and treated as calls.
+# 
+# The user can choose if accumulation of profiling data must start at the first instruction or each time a particular address in the target application is
+# encountered. Moreover, the user can choose if accumulation of profiling data must stop at the last instruction or each time a particular address in the
+# target application is encountered.
+# 
+# The profiler can work in two concurrent modes:
+#  - 'normal' mode, which generates one binary file per metric profiled; this file has suffix equal to 'prof.<core_id>.<metric_id>.###' and can be read
+#    by the gprof utility of the target core; if needed, a summary can be generated too (see below)
+#  - 'temporal' mode: in this case many 'intermediate' dumps are generated, each dump is generated after an interval of bundles (specified by parameter
+#    'dump_every') is elapsed and/or when some addresses (specified by parameter 'dump_at') are reached in the target application; in this case, one text
+#    file per metric profiled is generated; this file has suffix equal to 'prof.<core_id>.<metric_id>.tmp.###' and contains a row for each dump
+# 
+# After simulation, also a file having suffix equal to 'prof.<core_id>.info.###' is dumped. This file contains information on when the profiler has been
+# started and stopped.
+# 
+# If temporal profiling is enabled, the output file can be dumped in one of the following formats ('tmp_dump' parameter):
+#   'NONE':     no dump
+#   'TEXT':     data are grouped considering symbols contained in the target executable (pretty formatting, each column contains profile data for a range
+#               of addresses represented by a symbol)
+#   'TEXTF':    equivalent to 'TEXT' with flat formatting
+#   'RAWTEXT':  data are not grouped (pretty formatting, each column contains profile data for a single address)
+#   'RAWTEXTF': equivalent to 'RAWTEXT' with flat formatting
+# 
+# A summary can be generated ('summary' parameter) for dumping in a single text file all the profile data regarding all the metrics profiled by the
+# profiler. The summary will be dumped to a file having suffix equal to 'prof.<core_id>.sum.###' and can have one of the following formats:
+#   'NONE':      no summary
+#   'TEXT':      text summary with vertical orientation and pretty formatting where data are grouped considering symbols contained in the target
+#                executable (each row contains profile data for a range of addresses represented by a symbol)
+#   'VTEXT':     equivalent to 'TEXT'
+#   'VTEXTF':    equivalent to 'VTEXT' with flat formatting
+#   'RAWTEXT':   text summary with vertical orientation and pretty formatting where data are not grouped (each row contains profile data for a single
+#                address)
+#   'VRAWTEXT':  equivalent to 'RAWTEXT'
+#   'VRAWTEXTF': equivalent to 'VRAWTEXT' with flat formatting
+#   'HTEXT':     text summary with horizontal orientation and pretty formatting where data are grouped considering symbols contained in the target
+#                executable (each column contains profile data for a range of addresses represented by a symbol)
+#   'HTEXTF':    equivalent to 'HTEXT' with flat formatting
+#   'HRAWTEXT':  text summary with horizontal orientation and pretty formatting where data are not grouped (each column contains profile data for a
+#                single address)
+#   'HRAWTEXTF': equivalent to 'HRAWTEXT' with flat formatting
+metrics                    ""                                                     # space-separated list of metric names to profile
+start_at                   entry2(__.target_exec, minaddr2(__.target_exec, 0))    # address where the profilere will be enabled
+stop_at                    _.invalid_pc                                           # address where the profiler will be disabled
+pc_low                     symbol2(__.symbol_table, \
+                           "__text_start", \
+                           minaddr2(__.target_exec, 0))                           # start PC of the range of PC's being profiled
+pc_high                    symbol2(__.symbol_table, \
+                           "_etext", \
+                           maxaddr2(__.target_exec, 0xfffffff) + 1)               # end PC of the range of PC's being profiled
+pc_granularity             2                                                      # constant used to subsample the address space (min = 1, max = 8)
+poll_interval              16                                                     # number of bundle executed between consecutive invocations of the profiler (minimum value is 1)
+branch_call_equivalence    false                                                  # if true build a branch graph instead of a classical call graph
+custom_metrics_library     ""                                                     # path of the shared library containing the function implementing custom metrics
+dump_at                    ""                                                     # list of PC addresses and labels where profiling data must be dumped
+dump_every                 0                                                      # if not 0, temporal profiling is enabled and profiling data are dumped at the end of each interval composed of a number of bundles equal to this value
+tmp_dump                   "NONE"                                                 # type of dump for the temporal profiling
+summary                    "NONE"                                                 # type of summary
+debug_trace                "disabled"                                             # specify if and when debug information related to the profiler of 'gpe' core must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices]
+# This section contains all the device classes and instances that will be used during simulation.
+# Along with the pre-defined (internal) devices classes, that are automatically registered, created and initialized, users can add their own (external)
+# device classes.
+# For defining which external classes must be loaded, registered, created and initialized, the 'external_classes' parameter must be used. The value of
+# that parameter must be a list containing tokens having the format:
+# 
+#    (dll = <dll path>, function = <reg method>)
+# 
+# where:
+#   <dll path>   is the path of the shared library containing the external device class
+#   <reg method> is the identifier of the device class registration method, contained in the shared library
+
+external_classes    ""            # external device classes
+dump_map            false         # if true, dump the map of devices
+debug_trace         "disabled"    # specify if and when debug information related to the xSTsim devices environment must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.st231_intc]
+on_stack       false                                                  # true if the devices of that class are put on the stack, false otherwise
+instances      addprefix("d0_", for(0, _.gpe.core.num_of_hts - 1))    # list of devices that must be created
+debug_trace    "disabled"                                             # specify if and when debug information related to the 'st231_intc' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.st231_timers]
+on_stack       false                                                  # true if the devices of that class are put on the stack, false otherwise
+instances      addprefix("d0_", for(0, _.gpe.core.num_of_hts - 1))    # list of devices that must be created
+debug_trace    "disabled"                                             # specify if and when debug information related to the 'st231_timers' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.memtrc]
+# Devices of this class can monitor and trace memory accesses.
+# Each device can be enabled or disabled both using the configuration parameter and using the ENABLE register
+# (whose address can be customized).
+# Devices of this class can monitor and trace instruction operations, data operations or both, and can monitor
+# and trace software operations, hardware operations or both.
+# The memory area that is monitored is specified using the parameters 'base' and 'size'.
+# Each device of this class can produce no trace, or the trace produced can be sent to the trace file of the
+# IP connected to the device, to a file that is generated by the device or to both. This is obtained using
+# the 'trace_dst' parameter and using the values "none", "trace", "file" and "both" respectively.
+# In any case, the devices of this class produce a summary of the monitored memory accesses.
+# The path of the files generated by the devices of the 'memtrc' class will be
+#   <dump_dir>/<dump_name>.memtrc.<ip>,
+# where <dump_dir> is the simulator dump directory, <dump_name> is the base name for all the simulator dumps,
+# and <ip> is the identifier of the IP model connected to the device.
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+enabled        true          # true if the device is enabled, false otherwise
+trace_inst     true          # true if the device is enabled for tracing instruction operations, false otherwise
+trace_data     true          # true if the device is enabled for tracing data operations, false otherwise
+trace_hw       true          # true if the device is enabled for tracing hardware operations, false otherwise
+trace_sw       false         # true if the device is enabled for tracing software operations, false otherwise
+trace_dst      "file"        # specify the destination of the trace (see section comments)
+debug_trace    "disabled"    # specify if and when debug information related to the 'memtrc' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.mem]
+on_stack                       true           # true if the devices of that class are put on the stack, false otherwise
+instances                      "rom0 ram0"    # list of devices that must be created
+log2_bus_width                 3              # log 2 of the bus width in bytes
+read_delay_first               1              # if accuracy is not 0, memory cycles needed to read the first (or only) object (see log2_bus_width)
+read_delay_next                1              # if accuracy is not 0, memory cycles needed to read the following objects during a burst access (see log2_bus_width)
+write_delay_first              1              # if accuracy is not 0, memory cycles needed to write the first (or only) object (see log2_bus_width)
+write_delay_next               1              # if accuracy is not 0, memory cycles needed to write the following objects during a burst access (see log2_bus_width)
+stats_hist_max_num_of_words    8              # maximum number of words that must be considered for the statistics histograms (if statistics will be dumped; 0 if histograms must not be generated)
+debug_trace                    "disabled"     # specify if and when debug information related to the 'mem' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.mem.ram0]
+clock_ratio    37
+
+
+[devices.clkfreq]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'clkfreq' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.siggen]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'siggen' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.intgen]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      "d0"          # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'intgen' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+core_ctrl      0x0
+
+
+[devices.intgen.d0]
+base                        0x10000
+int_out_pins                1
+int_out_pins_connections    "0: st231_intc.d0_0.3"
+
+
+[devices.loader]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'loader' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.hd]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'hd' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.framebuffer]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      "d0"          # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'framebuffer' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.framebuffer.d0]
+alignment       4
+magic_reg       0x20000000
+leds_reg        0x20001000
+alpha0_reg      0x20002000
+num_of_alpha    16
+mem_base        0x20100000
+
+
+[devices.keyboard]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'keyboard' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.ibuff]
+on_stack       true                                           # true if the devices of that class are put on the stack, false otherwise
+instances      if(_.gpe.subsystem.ibuff_enabled, "d0", "")    # list of devices that must be created
+debug_trace    "disabled"                                     # specify if and when debug information related to the 'ibuff' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.icache]
+on_stack       true                                            # true if the devices of that class are put on the stack, false otherwise
+instances      if(_.gpe.subsystem.icache_enabled, "d0", "")    # list of devices that must be created
+debug_trace    "disabled"                                      # specify if and when debug information related to the 'icache' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.dcache]
+on_stack       true                                            # true if the devices of that class are put on the stack, false otherwise
+instances      if(_.gpe.subsystem.dcache_enabled, "d0", "")    # list of devices that must be created
+debug_trace    "disabled"                                      # specify if and when debug information related to the 'dcache' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.wbuff]
+on_stack       true                                           # true if the devices of that class are put on the stack, false otherwise
+instances      if(_.gpe.subsystem.wbuff_enabled, "d0", "")    # list of devices that must be created
+debug_trace    "disabled"                                     # specify if and when debug information related to the 'wbuff' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.st231_cregs]
+# Control registers device class for the ST231 core.
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      "d0"          # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'st231_cregs' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.st231_mmu]
+on_stack               true           # true if the devices of that class are put on the stack, false otherwise
+instances              "d0"           # list of devices that must be created
+changes_debug_trace    debug_trace    # specify if and when debug information related to changes in the MMU contents must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+debug_trace            "disabled"     # specify if and when debug information related to the 'st231_mmu' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.icn]
+# The 'icn' device class can model an interconnect with different topologies.
+# The interconnect topology is chosen using the 'topology' configuration parameter.
+# Possible values for this parameter are: 'shared' for a shared bus, 'crossbar' for a crossbar, and 'custom' for
+# choosing which targets must share the same arbiter and the same connection to the initiators. In this case, the
+# 'custom_topology' parameter can be used for specifying how arbiters must be connected to targets. This parameter
+# accepts a string composed of one or more tokens of the following type:
+# 
+#   '['<id1> ... <idn>']'
+# 
+# where <id1> ... <idn> are the identifiers of targets (IP model names) that must share the same arbiter. So each
+# token specifies an arbiter and the group of targets that are connected to it. The same target can appear only
+# once in the list. If a target is not contained in the list, it is assumed to be connected to its private arbiter,
+# unless an empty group ('[]') is present in the list, which means that all targets that have not been specified in
+# the list are connected to the same arbiter.
+# Using the 'custom' topology and 'custom_topology' parameter, a shared bus is identified by the string '[]' and a
+# crossbar is identifier by the empty string.
+on_stack                       true                                                               # true if the devices of that class are put on the stack, false otherwise
+instances                      "d"                                                                # list of devices that must be created
+topology                       "crossbar"                                                         # possible values are 'shared','crossbar' and 'custom' (see section comments)
+visible_classes                "*_cregs mem xfc clkfreq intgen extmem hd keyboard framebuffer"    # space-separated list of device classes that will be seen and mapped by the interconnect
+log2_width                     3                                                                  # log 2 of the bus width in bytes
+request_cycles                 1                                                                  # number of device clock cycles needed to propagate a (word of) request
+response_cycles                1                                                                  # number of device clock cycles needed to propagate a (word of) response
+stats_hist_max_num_of_words    8                                                                  # maximum number of words that must be considered for the statistics histograms (if statistics will be dumped; 0 if histograms must not be generated)
+debug_trace                    "disabled"                                                         # specify if and when debug information related to the 'icn' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.icn.d]
+topology       "shared"
+clock_ratio    37
+
+
+[devices.noc]
+# The 'noc' device class can model a NoC with different topologies.
+# Each IP model connected to the NoC is directly connected to a router of the NoC. Routers can have three,
+# four or five channels, which are respectively called 'local', 'left', 'right', 'front' and 'back'.
+# Routers can be connected with a ring topology (in which case routers have only three channels), in a
+# spidergon topology (in which case routers have four channels) or in a custom topology. In the latter
+# case the two parameters 'custom_topology' and 'routing_table' must be used for specifying the paths of the
+# files describing the topology and the routing table of the NoC device. For help on how to build those
+# files, please define a NoC device with a predefined topology and dump the two files using the parameters
+# 'dump_topology' and 'dump_routing_table'.
+# Router channels have a priority that is always LEFT, RIGHT, FRONT (from the highest priority channel to
+# the lowest priority channel) for the two predefined topologies. For custom topologies, channel priorities
+# are implicitly derived from the way they are listed in the file containing the topology of the NoC (they
+# are assumed listed from the one with the highest priority to the one with the lowest priority). Priorities
+# can be varied in a Round Robin fashion at runtime setting the 'variable_priorities' parameter. The local
+# channel always has the highest priority.
+on_stack                       true                                                               # true if the devices of that class are put on the stack, false otherwise
+instances                      ""                                                                 # list of devices that must be created
+topology                       "ring"                                                             # possible values are 'ring', 'spidergon' and 'custom' (see section comments)
+visible_classes                "*_cregs mem xfc clkfreq intgen extmem hd keyboard framebuffer"    # space-separated list of device classes that will be seen and mapped by the NoC
+log2_width                     3                                                                  # log 2 of the bus width in bytes
+buffer_size                    8                                                                  # buffer size (expressed in terms of bus words) for each input channel of each router
+can_modify_buffer_sizes        false                                                              # true if input channels can vary the buffer sizes at runtime (borrowing slots from other input channels in the same router)
+variable_priorities            true                                                               # if true, channel priorities are varied in a Round Robin fashion at runtime
+router_latency                 1                                                                  # number of device clock cycles needed by each router to propagate a (word of) request or response
+stats_hist_max_num_of_words    8                                                                  # maximum number of words that must be considered for the statistics histograms (if statistics will be dumped; 0 if histograms must not be generated)
+debug_trace                    "disabled"                                                         # specify if and when debug information related to the 'noc' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.extmem]
+on_stack       true          # true if the devices of that class are put on the stack, false otherwise
+instances      ""            # list of devices that must be created
+debug_trace    "disabled"    # specify if and when debug information related to the 'extmem' device class must be printed (allowed values are "disabled", "enabled", "trace" and "always")
+
+
+[devices.profiler]
+bundles_poll_interval    1
+pc_granularity           1
+summary_mode             "TEXT"

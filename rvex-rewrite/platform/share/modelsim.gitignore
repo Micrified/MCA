@@ -1,0 +1,10 @@
+*.wlf
+wlft*
+transcript
+work
+rvex
+unisim
+compile*.do
+unisim_*.vhd
+*stacktrace.vstf
+*.rcc

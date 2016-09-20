@@ -1,0 +1,96 @@
+
+Address range       | Description                                        | grip.pdf section
+--------------------+----------------------------------------------------+-----------------
+00000000 - 40000000 | DDR2 memory                                        | n/a
+80000000 - 80000100 | Interrupt control registers                        | 72, irqmp
+80000100 - 80000200 | Bottom PS/2 interface registers                    | 14, apbps2
+80000200 - 80000300 | Top PS/2 interface registers                       | 14, apbps2
+80000300 - 80000400 | Timers, see below                                  | 30, gptimer
+80000400 - 80000500 | Framebuffer control registers                      | 105, svgactrl
+80000500 - 80000600 | I2C master for setting up CH7301 VGA/DVI interface | 70, i2cmst
+80000600 - 80000700 | GPIO for LEDs, switches and buttons, see below     | 48, grgpio
+D0000000 - D1000000 | r-VEX platform debug registers (user manual)       | n/a
+D1000000 - D2000000 | Debug UART                                         | n/a
+D2000000 - D3000000 | Audio output buffer, see below                     | n/a
+
+IRQ | Function
+----+--------------------------
+1   | Timer 1
+2   | Timer 2
+3   | Timer 3 (audio clock)
+4   | Debug UART
+5   | Audio buffer low
+6   | Bottom PS/2
+7   | Top PS/2
+8   | I2C master
+9   | GPIO
+
+
+TIMERS:
+
+The gptimer thing contains 3 32-bit timers and a 16-bit prescaler. The overflow 
+rate of the third timer is connected to the audio buffer to generate the 
+samplerate.
+
+Intended configuration:
+ - Prescaler: reload value 39 assuming 40 MHz, to get 1us tick rate for the
+   other timers.
+ - Timer 1: reload value 999999, so it counts microseconds within a second.
+ - Timer 2: chain with timer 1 so it decrements every second, reload value
+   0xFFFFFFFF
+ - Timer 3: reload value 22 to get ~44.1 kHz. Adjust accordingly for other
+   samplerates.
+
+The values of timer 1 and 2 can be used for gettimeofday:
+  sec = <timer 2 value>;
+  usec = <timer 1 value>;
+  sec2 = <timer 2 value>;
+  if (sec != sec2) {
+    usec = 0
+  } else {
+    usec = 999999 - usec;
+  }
+  sec = ~sec2;
+
+
+GPIO:
+
+LED 1: reserved for audio output
+LED 2: DDR initialized (should light up, otherwise reprogram bitstream)
+LED 3: debug UART activity
+LED 4: GPIO bit 3
+LED 5: GPIO bit 4
+LED 6: GPIO bit 5
+LED 7: GPIO bit 6
+LED 8: GPIO bit 7
+
+LED C: GPIO bit 8
+LED W: GPIO bit 9
+LED E: GPIO bit 10
+LED S: GPIO bit 11
+LED N: GPIO bit 12
+
+DIP switch 1: GPIO bit 16
+DIP switch 2: GPIO bit 17
+DIP switch 3: GPIO bit 18
+DIP switch 4: GPIO bit 19
+DIP switch 5: GPIO bit 20
+DIP switch 6: GPIO bit 21
+DIP switch 7: GPIO bit 22
+DIP switch 8: GPIO bit 23
+
+Button C: GPIO bit 24
+Button W: GPIO bit 25
+Button E: GPIO bit 26
+Button S: GPIO bit 27
+Button N: GPIO bit 28
+
+
+AUDIO OUTPUT:
+
+Writing a byte to 0xD2000000 writes an 8-bit unsigned sample to the audio FIFO. 
+Reading a 32-bit word from 0xD2000000 returns the number of samples currently in 
+the buffer. The buffer is 4096 samples long. The IRQ line is asserted when the 
+number of samples in the buffer falls below 1024. The overflow rate of 
+general-purpose timer 3 determines the samplerate.
+

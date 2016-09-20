@@ -1,0 +1,434 @@
+#!/usr/bin/python3
+
+import sys
+import os
+from plumbum import local
+
+rm = local['rm']['-f']
+ln = local['ln']['-s']
+cp = local['cp']
+mkdir = local['mkdir']
+
+# Check that the config file exists.
+if not os.path.isfile('configuration.rvex'):
+    print('Error: no configuration.rvex was found in the current directory.')
+    sys.exit(1)
+
+# Parse the configuration file.
+errors = False
+keys = set(['BENCHMARKS', 'CONFIG', 'ICACHE', 'DCACHE', 'FORWARDING', 'STOPBIT'])
+with open('configuration.rvex', 'r') as f:
+    lines = f.readlines()
+lines = [(n+1, l.split('#')[0].strip()) for n, l in enumerate(lines)]
+lines = [(n, l) for n, l in lines if l]
+cores = []
+for n, l in lines:
+    if l == '[core]':
+        cores.append({'linenr': n})
+        continue
+    elif not cores:
+        print('Error: unknown configuration token before the first [core] on line %d.' % n)
+        errors = True
+        continue
+    l = [x.strip() for x in l.split('=', 1)]
+    if len(l) != 2:
+        print('Error: syntax error on line %d.' % n)
+        errors = True
+        continue
+    if l[0] not in keys:
+        print('Error: unknown configuration key on line %d.' % n)
+        errors = True
+        continue
+    cores[-1][l[0]] = (n, l[1])
+for c in cores:
+    for k in keys:
+        if k not in c:
+            print('Error: core defined on line %d is missing configuration key %s.' % (c['linenr'], k))
+            errors = True
+    linenr = c['linenr']
+    del c['linenr']
+    nc = {}
+    for k in c:
+        n, v = c[k]
+        if k == 'BENCHMARKS':
+            nc['benchmarks'] = v.split()
+        elif k.endswith('CACHE'):
+            mult = 1
+            if v.endswith('k'):
+                mult = 1024
+                v = v[:-1].strip()
+            try:
+                v = int(v) * mult
+            except ValueError:
+                print('Error: parse error on line %d.' % n)
+                errors = True
+                continue
+            if (v & (v - 1)) != 0:
+                print('Error: cache size is not a power of 2 on line %d.' % n)
+                errors = True
+                continue
+            v = int.bit_length(v) - 1
+            nc[k[0].lower() + 'cachelog2'] = v
+        elif k == 'CONFIG':
+            nc['multiplier_count'] = v.count('1')
+            try:
+                nv = int(v, 16)
+                if nv & 0xEEEEEEEE:
+                    raise ValueError()
+            except ValueError:
+                print('Error: parse error on line %d.' % n)
+                errors = True
+                continue
+            if len(v) == 2:
+                nc['issuewidth'] = 2
+                nc['numlaneslog2'] = 1
+                nc['laneconfig'] = '%02X' % (0x59 | (nv << 1))
+                nc['multipliers'] = '%02X' % nv
+                nc['borrow'] = '1.0'
+            elif len(v) == 4:
+                nc['issuewidth'] = 4
+                nc['numlaneslog2'] = 2
+                nc['laneconfig'] = '%04X' % (0x5119 | (nv << 1))
+                nc['multipliers'] = '%04X' % nv
+                nc['borrow'] = '1.0.3.2'
+            elif len(v) == 8:
+                nc['issuewidth'] = 8
+                nc['numlaneslog2'] = 3
+                nc['laneconfig'] = '%08X' % (0x51111119 | (nv << 1))
+                nc['multipliers'] = '%08X' % nv
+                nc['borrow'] = '1.0.3.2.5.4.7.6'
+            else:
+                print('Error: issue width must be 2, 4, or 8 on line %d.' % n)
+                errors = True
+                continue
+        elif k == 'FORWARDING':
+            if v not in ['0', '1']:
+                print('Error: forwarding must be 1 or 0 on line %d.' % n)
+                errors = True
+                continue
+            nc['forwarding'] = int(v)
+        elif k == 'STOPBIT':
+            if v not in ['2', '4', '8']:
+                print('Error: stop bit config must be 2, 4, or 8 on line %d.' % n)
+                errors = True
+                continue
+            nc['stopbit'] = int(v)
+            nc['bundlealignlog2'] = int.bit_length(int(v)) - 1
+        else:
+            raise RuntimeError('No parser for key %s', k)
+    if 'icachelog2' in nc and 'numlaneslog2' in nc:
+        nc['icachelog2'] -= nc['numlaneslog2'] + 2
+        if nc['icachelog2'] < 1:
+            print('Error: instruction cache too small on line %d.' % c['ICACHE'][0])
+            errors = True
+            continue
+    if 'dcachelog2' in nc:
+        nc['dcachelog2'] -= 2
+        if nc['dcachelog2'] < 1:
+            print('Error: data cache too small on line %d.' % c['DCACHE'][0])
+            errors = True
+            continue
+    if 'bundlealignlog2' in nc and 'numlaneslog2' in nc:
+        if nc['bundlealignlog2'] > nc['numlaneslog2']:
+            print('Error: stop bit config is greater than issue width for core on line %d.' % linenr)
+            errors = True
+            continue
+    c.clear()
+    c.update(nc)
+if errors:
+    sys.exit(1)
+
+# Query overriding things.
+if os.path.isdir('sim') or os.path.isdir('compile') or os.path.isdir('synth'):
+    print('Warning! Reconfiguring will delete all files in the sim, compile, and synth')
+    print('directories. That includes any synthesis data/bitstreams that you may have')
+    print('built in this directory. Are you sure you want to delete these things? [y/n]')
+    if input() != 'y':
+        sys.exit(1)
+
+# Clean up, then rebuild directory structure.
+for d in ['sim', 'compile', 'synth']:
+    rm('-r', d)
+    mkdir('-p', d)
+
+# Generate the machine configuration files.
+mm_template = """
+RES: IssueWidth     {issuewidth}
+RES: MemLoad        1
+RES: MemStore       1
+RES: MemPft         0
+# ***Clusters***    1
+RES: IssueWidth.0   {issuewidth}
+RES: Alu.0          {issuewidth}
+RES: Mpy.0          {multipliers}
+RES: Memory.0       1
+RES: CopySrc.0      1
+RES: CopyDst.0      1
+REG: $r0            63
+REG: $b0            8
+DEL: AluR.0         {lat0}
+DEL: Alu.0          {lat0}
+DEL: CmpBr.0        {lat0}
+DEL: CmpGr.0        {lat0}
+DEL: Select.0       {lat0}
+DEL: Multiply.0     {lat1}
+DEL: Load.0         {lat1}
+DEL: LoadLr.0       {lat1}
+DEL: Store.0        0
+DEL: Pft.0          0
+DEL: CpGrBr.0       {lat0}
+DEL: CpBrGr.0       {lat0}
+DEL: CpGrLr.0       {lat0}
+DEL: CpLrGr.0       {lat0}
+DEL: Spill.0        0
+DEL: Restore.0      {lat1}
+DEL: RestoreLr.0    {lat1}
+CFG: Quit           0
+CFG: Warn           0
+CFG: Debug          0
+"""
+for i, c in enumerate(cores):
+    mkdir('-p', 'sim/core%d' % i)
+    mkdir('-p', 'compile/core%d' % i)
+    ln('../../sim/core%d/configuration.mm' % i, 'compile/core%d/config.mm' % i)
+    with open('sim/core%d/configuration.mm' % i, 'w') as f:
+        f.write(mm_template.format(
+            issuewidth = c['issuewidth'],
+            multipliers = c['multiplier_count'],
+            lat0 = 0 if nc['forwarding'] else 3,
+            lat1 = 1 if nc['forwarding'] else 3
+        ))
+
+# Generate the main C files and linker scripts.
+counter_save_code = """    {int}cyc    = CR_CYC;
+    {int}stall  = CR_STALL;
+    {int}bun    = CR_BUN;
+    {int}syl    = CR_SYL;
+    {int}nop    = CR_NOP;
+    {int}iacc   = CR_IACC;
+    {int}imiss  = CR_IMISS;
+    {int}dracc  = CR_DRACC;
+    {int}drmiss = CR_DRMISS;
+    {int}dwacc  = CR_DWACC;
+    {int}dwmiss = CR_DWMISS;
+    *lptr++ = cyc;
+    *lptr++ = stall;
+    *lptr++ = bun;
+    *lptr++ = syl;
+    *lptr++ = nop;
+    *lptr++ = 0xDEADBEEF;
+    *lptr++ = iacc;
+    *lptr++ = imiss;
+    *lptr++ = dracc;
+    *lptr++ = drmiss;
+    *lptr++ = dwacc;
+    *lptr++ = dwmiss;
+"""
+elf32rvex = """
+/* Default linker script, for normal executables */
+/* Example Linker Script for linking NS CR16 elf32 files. */
+OUTPUT_FORMAT("elf32-rvex")
+OUTPUT_ARCH(rvex)
+ENTRY(_start)
+/* Define memory regions.  */
+MEMORY
+{
+        ram         : ORIGIN = 0x%08X,          LENGTH = 32M
+}
+/*  Many sections come in three flavours.  There is the 'real' section,
+    like ".data".  Then there are the per-procedure or per-variable
+    sections, generated by -ffunction-sections and -fdata-sections in GCC,
+    and useful for --gc-sections, which for a variable "foo" might be
+    ".data.foo".  Then there are the linkonce sections, for which the linker
+    eliminates duplicates, which are named like ".gnu.linkonce.d.foo".
+    The exact correspondences are:
+    Section Linkonce section
+    .text   .gnu.linkonce.t.foo
+    .rdata  .gnu.linkonce.r.foo
+    .data   .gnu.linkonce.d.foo
+    .bss    .gnu.linkonce.b.foo
+    .debug_info .gnu.linkonce.wi.foo  */
+SECTIONS
+{
+  .text :
+  {
+    __TEXT_START = .;
+    *(.init)
+    *(.text)
+    __TEXT_END = .;
+  } > ram
+  .data :
+  {
+    __DATA_START = .;
+    *(.rodata*)
+    *(.data_4) *(.data_2) *(.data_1) *(.data) *(.data.*) *(.gnu.linkonce.d.*)
+    __DATA_END = .;
+    . = ALIGN(16);
+  } > ram
+  .bss (NOLOAD) :
+  {
+    __BSS_START = .;
+    *(.bss_4) *(.bss_2) *(.bss_1) *(.bss) *(COMMON) *(.bss.*) *(.gnu.linkonce.b.*)
+    __BSS_END = .;
+  } > ram
+  
+  /*
+  .testmpg :
+  {
+    __TESTMPG_START = .;
+    testmpgelf.o
+    __TESTMPG_END = .;
+  } > ram
+  */
+  
+  
+/* You may change the sizes of the following sections to fit the actual
+   size your program requires.
+   The heap and stack are aligned to the bus width, as a speed optimization
+   for accessing data located there.  */
+  .stack (NOLOAD) :
+  {
+    . = ALIGN(4);
+    . += 0x6000;
+    __STACK_START = .;
+  } > ram
+
+  .heap (NOLOAD) :
+  {
+    . = ALIGN(4);
+    end = .;
+    _end = .;
+    __HEAP_START = .;
+    . += 0x200000; 
+    __HEAP_MAX = .;
+  } > ram
+
+  .comment        0 : { *(.comment) }
+  /* DWARF debug sections.
+     Symbols in the DWARF debugging sections are relative to the beginning
+     of the section so we begin them at 0.  */
+  .debug_aranges  0 : { *(.debug_aranges) }
+  .debug_pubnames 0 : { *(.debug_pubnames) }
+  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 : { *(.debug_abbrev) }
+  .debug_line     0 : { *(.debug_line) }
+  .debug_frame    0 : { *(.debug_frame) }
+  .debug_str      0 : { *(.debug_str) }
+  .debug_loc      0 : { *(.debug_loc) }
+  .debug_macinfo  0 : { *(.debug_macinfo) }
+}
+__DATA_IMAGE_START = LOADADDR(.data);
+"""
+for i, c in enumerate(cores):
+    with open('compile/core%d/main.c' % i, 'w') as f:
+        f.write('#include "rvex.h"\n')
+        for b in c['benchmarks']:
+            f.write('void %s_main(void);\n' % b)
+        f.write('volatile int *lptr = (volatile int*)0x%08X;\n' % (0x1F000000 + 0x00100000*i))
+        f.write('int main(void) {\n')
+        f.write(counter_save_code.format(int='int '))
+        for b in c['benchmarks']:
+            f.write('    %s_main();\n' % b)
+            f.write(counter_save_code.format(int=''))
+        f.write('}\n')
+    with open('compile/core%d/elf32rvex.x' % i, 'w') as f:
+        f.write(elf32rvex % (i * 32*1024*1024))
+
+# TODO makefiles
+
+# Generate the grlib config.vhd files.
+config_vhd_head = """
+library techmap;
+use techmap.gencomp.all;
+
+library ieee;
+use ieee.std_logic_1164.all;
+
+library rvex;
+use rvex.common_pkg.all;
+use rvex.core_pkg.all;
+use rvex.cache_pkg.all;
+use rvex.rvsys_grlib_pkg.all;
+
+package config is
+-- Technology and synthesis options
+  constant CFG_FABTECH : integer := virtex6;
+  constant CFG_MEMTECH : integer := virtex6;
+  constant CFG_PADTECH : integer := virtex6;
+  constant CFG_NOASYNC : integer := 0;
+  constant CFG_SCAN : integer := 0;
+-- LEON3 processor core
+  --constant CFG_DISAS : integer := 0 + 0;
+  --constant CFG_PCLOW : integer := 2;
+-- r-VEX processor core
+  constant CFG_NRVEX : integer := {num_cores};
+  constant CFG_RVEX_CFG : rvex_grlib_generic_config_array(0 to CFG_NRVEX-1) := (
+"""
+config_vhd_core = """    
+    -- Core {index} configuration
+    {index} => rvex_grlib_cfg(
+      core => rvex_cfg(
+        numLanesLog2          => {numLanesLog2},
+        numLaneGroupsLog2     => 0,
+        numContextsLog2       => 0,
+        bundleAlignLog2       => {bundleAlignLog2},
+        multiplierLanes       => 2#{multiplierLanes}#,
+        memLaneRevIndex       => {memLaneRevIndex},
+        numBreakpoints        => 0,
+        forwarding            => {forwarding},
+        limmhFromPreviousPair => 0,
+        resetVectors          => (others => X"{reset:08X}"),
+        traceEnable           => 0,
+        perfCountSize         => 4,
+        cachePerfCountEnable  => 1
+      ), core_valid => true,
+    
+      -- Cache configuration
+      cache => cache_cfg(
+        instrCacheLinesLog2   => {instrCacheLinesLog2},
+        dataCacheLinesLog2    => {dataCacheLinesLog2}
+      ), cache_valid => true)"""
+config_vhd_foot = """
+  );
+-- Total number of processors
+  constant CFG_NLG : integer := rvex_grlib_num_lane_groups(CFG_RVEX_CFG);
+  constant CFG_NCTXT : integer := rvex_grlib_num_contexts(CFG_RVEX_CFG);
+-- AMBA settings
+  constant CFG_FPNPEN : integer := 0;
+  constant CFG_AHBIO : integer := 16#FFF#;
+  constant CFG_APBADDR : integer := 16#800#;
+  constant CFG_AHB_MON : integer := 0;
+  constant CFG_AHB_MONERR : integer := 0;
+  constant CFG_AHB_MONWAR : integer := 0;
+  constant CFG_AHB_DTRACE : integer := 0;
+-- Xilinx MIG DDR2 controller
+  constant CFG_MIG_DDR2 : integer := 1;
+  --constant CFG_MIG_CLK4 : integer := 30; -- 40 MHz     (5.0ns sync with 200MHz DDR)
+  --constant CFG_MIG_CLK4 : integer := 32; -- 37.5 MHz   (1.6ns sync with 200MHz DDR)
+  --constant CFG_MIG_CLK4 : integer := 33; -- 36.36 MHz  (2.5ns sync with 200MHz DDR)
+  --constant CFG_MIG_CLK4 : integer := 36; -- 33.33 MHz  (5.0ns sync with 200MHz DDR)
+  --constant CFG_MIG_CLK4 : integer := 40; -- 30 MHz     (1.6ns sync with 200MHz DDR)
+    constant CFG_MIG_CLK4 : integer := 60; -- 20 MHz     (5.0ns sync with 200MHz DDR)
+
+end;
+"""
+with open('synth/config.vhd', 'w') as f:
+    f.write(config_vhd_head.format(num_cores=len(cores)))
+    for i, c in enumerate(cores):
+        f.write(config_vhd_core.format(
+            index               = i,
+            numLanesLog2        = c['numlaneslog2'],
+            bundleAlignLog2     = c['bundlealignlog2'],
+            multiplierLanes     = c['multipliers'],
+            memLaneRevIndex     = c['issuewidth'] - 1,
+            forwarding          = c['forwarding'],
+            reset               = i * 32*1024*1024,
+            instrCacheLinesLog2 = c['icachelog2'],
+            dataCacheLinesLog2  = c['dcachelog2']
+        ))
+    f.write(config_vhd_foot)
+
+# sim
+# compile
+# synth
+

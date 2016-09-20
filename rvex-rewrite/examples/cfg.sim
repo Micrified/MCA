@@ -1,0 +1,63 @@
+ips "[r-vex c]"
+
+[system]
+main_clock_freq    31500000000
+
+[devices.icn]
+instances    "d"
+
+[devices.icn.d]
+topology       "shared"
+clock_ratio    37
+
+[devices.framebuffer]
+instances    "d0"
+
+[devices.framebuffer.d0]
+alignment       4
+magic_reg       0x20000000
+leds_reg        0x20001000
+alpha0_reg      0x20002000
+num_of_alpha    32
+mem_base        0x20100000
+
+
+[devices.mem]
+instances    "ram0"
+read_delay_first     1
+read_delay_next      1
+write_delay_first    1
+write_delay_next     1
+
+
+[devices.mem.ram0]
+inst_tb_channel    true	# this maps the RAM also in the instruction memory
+
+
+[c]
+#target_exec    "adpcm.elf"
+#target_args    ""
+symbol_table                 target_exec                                 # path of the symbol table (empty string if no symbol table is available)
+kernel_debug_trace       "disabled"                                  # specify if and when debug information related to the 'gpe' core model simulation kernel must be printed (allowed values are "disabled", "always" and "on trace")
+decoder_debug_trace      "disabled"                                  # specify if and when debug information related to the 'gpe' core instruction decoder must be printed (allowed values are "disabled", "always" and "on trace")
+excs_debug_trace         "always"                                  # specify if and when debug information related to the 'gpe' core model exceptions must be printed (allowed values are "disabled", "always" and "on trace")
+regs_debug_trace         "disabled"                                  # specify if and when debug information related to the 'gpe' core model machine registers must be printed (allowed values are "disabled", "always" and "on trace")
+cregs_debug_trace        "disabled"                                  # specify if and when debug information related to the 'gpe' core model control registers must be printed (allowed values are "disabled", "always" and "on trace")
+oscalls_debug_trace      "always"                                  # specify if and when debug information related to the 'gpe' core model sim OS calls must be printed (allowed values are "disabled", "always" and "on trace")
+
+[c.core]
+#oscalls_trap_address      symbol2(__.symbol_table, "__dotsyscall", _.invalid_pc) #Unfortunately, this segfaults when using with rVEX
+endianness     "big"
+num_of_hts     1
+clock_ratio    22
+boot_address   0x0000000
+#issue_width	8
+
+
+[c.subsystem]
+rambase    0x0000000
+ramsize    0xf0000 	#default 1M
+devices    devices_default +" /mem.rom0 framebuffer.d0 mem.ram0"     # this removes rom<x> from the default devices of the core
+devices_stack    devices_stack_default + "(L32 mem.ram0)(L27 framebuffer.d0)"    # this replaces the default level 32 of the devices stack containing both ROM and RAM with a level containing only the RAM
+
+

@@ -6,11 +6,6 @@
 !/assignment1/powerstone
 !/assignment1/configurations
 
-/assignment1/powerstone/*
-!/assignment1/powerstone/sys
-!/assignment1/powerstone/*.c
-!/assignment1/powerstone/*.h
-
 /assignment1/configurations/*
 
 !/assignment1/configurations/example-2-issue
@@ -22,7 +17,19 @@
 !/assignment1/configurations/example-2-issue-2-cluster/configuration.mm
 
 # ASSIGNMENT 2
-# Everything included.
+/assignment2/*
+!/assignment2/powerstone
+!/assignment2/configurations
+/assignment2/configurations/*
+!/assignment2/configurations/example
+/assignment2/configurations/example/*
+!/assignment2/configurations/example/configuration.rvex
 
 # TOOLS
 # Everything included.
+
+# POWERSTONE
+/powerstone/*
+!/powerstone/sys
+!/powerstone/*.c
+!/powerstone/*.h

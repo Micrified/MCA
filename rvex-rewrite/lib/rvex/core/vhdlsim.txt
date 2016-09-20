@@ -1,0 +1,2 @@
+core_listOpcodes_tb.vhd
+core_cfgCtrl_tb.vhd
