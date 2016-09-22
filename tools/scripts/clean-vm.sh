@@ -10,7 +10,7 @@ git reset --hard
 
 echo "Resetting group number configuration..."
 rm -rf ~/boardserver
-cd ~/Dropbox
+cd ~/.dropbox-folder/Dropbox
 dropbox exclude add `ls`
 
 echo "Clearing bash history..."

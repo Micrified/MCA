@@ -1,0 +1,19 @@
+[Desktop Entry]
+Comment[en_US]=
+Comment=
+Exec=konsole -e ~/scripts/vpn-setup.sh
+GenericName[en_US]=Set VPN NetID
+GenericName=Set VPN NetID
+Icon=exec
+MimeType=
+Name[en_US]=Set group nr. and netID
+Name=Set group nr. and netID
+Path=/home/user
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=

@@ -9,7 +9,7 @@ if len(sys.argv) != 2:
     sys.exit(1)
 try:
     group = int(sys.argv[1])
-    if group > 99 or group < 1:
+    if group > 99 or group < 0:
         raise ValueError()
 except ValueError:
     print('Error: invalid group number specified...')
@@ -20,7 +20,7 @@ with open('/home/user/workspace/.mcagroup', 'w') as f:
     f.write(str(group))
 
 # Configure dropbox.
-dropbox_folder = '/home/user/Dropbox'
+dropbox_folder = '/home/user/.dropbox-folder/Dropbox'
 dropbox_group = 'group%02d' % group
 boardserver = '/home/user/boardserver'
 os.chdir(dropbox_folder)
