@@ -1,5 +1,7 @@
-cores/
-platforms/
+cores/*
+platforms/*
+!cores/.keep-dir
+!platforms/.keep-dir
 latest-*.tar.gz
 latest-*.bit
 

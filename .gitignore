@@ -21,6 +21,7 @@
 # ASSIGNMENT 2
 /assignment2/*
 !/assignment2/powerstone
+!/assignment2/utils
 !/assignment2/configurations
 /assignment2/configurations/*
 !/assignment2/configurations/example

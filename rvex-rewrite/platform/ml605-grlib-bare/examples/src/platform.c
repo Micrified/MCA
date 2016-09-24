@@ -9,6 +9,8 @@
 void _stop(void);
 int putchar(int character)        { plat_serial_putc(0, character); return 0; }
 int puts(const char *str)         { plat_serial_puts(0, str);       return 0; }
+int putd(int value)               { plat_serial_putd(0, str);       return 0; }
+int putx(int value)               { plat_serial_putx(0, str);       return 0; }
 int rvex_succeed(const char *str) { plat_serial_puts(0, str);       _stop(); }
 int rvex_fail(const char *str)    { plat_serial_puts(0, str);       _stop(); }
 

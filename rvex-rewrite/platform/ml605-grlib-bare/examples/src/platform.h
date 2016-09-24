@@ -22,6 +22,8 @@ void plat_init(void);
 // Debugging stuff needed by start.o. These use serial port 0 (the debug port).
 int putchar(int character);
 int puts(const char *str);
+int putd(int value);
+int putx(int value);
 int rvex_succeed(const char *str);
 int rvex_fail(const char *str);
 

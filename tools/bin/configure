@@ -16,7 +16,15 @@ if not os.path.isfile('configuration.rvex'):
 
 # Parse the configuration file.
 errors = False
-keys = set(['BENCHMARKS', 'CONFIG', 'ICACHE', 'DCACHE', 'FORWARDING', 'STOPBIT'])
+keys = set(['BENCHMARKS', 'CONFIG', 'ICACHE', 'DCACHE', 'STOPBIT'])#, 'FORWARDING'])
+
+# The option to disable forwarding is removed because it comes with a whole
+# heap of problems:
+#  - The VEX compiler does not handle ALU latencies greater than one correctly.
+#  - There is currently no option to fix that with vexparse. Also, vexparse
+#    tries to make generic binaries which affects performance and is not
+#    necessary here.
+
 with open('configuration.rvex', 'r') as f:
     lines = f.readlines()
 lines = [(n+1, l.split('#')[0].strip()) for n, l in enumerate(lines)]
@@ -45,6 +53,8 @@ for c in cores:
         if k not in c:
             print('Error: core defined on line %d is missing configuration key %s.' % (c['linenr'], k))
             errors = True
+    if 'FORWARDING' not in c:
+        c['FORWARDING'] = (-1, '1')
     linenr = c['linenr']
     del c['linenr']
     nc = {}
@@ -198,6 +208,13 @@ for i, c in enumerate(cores):
             lat0 = 0 if nc['forwarding'] else 3,
             lat1 = 1 if nc['forwarding'] else 3
         ))
+    with open('sim/core%d/Makefile' % i, 'w') as f:
+        f.write('.PHONY: all\n')
+        f.write('all:\n')
+        for b in c['benchmarks']:
+            f.write('\t@echo ""\n')
+            f.write('\t@echo "Calling \'run %s\'..."\n' % b)
+            f.write('\t@run %s\n' % b)
 
 # Generate the main C files and linker scripts.
 counter_save_code = """    {int}cyc    = CR_CYC;
@@ -224,7 +241,7 @@ counter_save_code = """    {int}cyc    = CR_CYC;
     *lptr++ = dwacc;
     *lptr++ = dwmiss;
 """
-elf32rvex = """
+linkerscript = """
 /* Default linker script, for normal executables */
 /* Example Linker Script for linking NS CR16 elf32 files. */
 OUTPUT_FORMAT("elf32-rvex")
@@ -322,19 +339,30 @@ __DATA_IMAGE_START = LOADADDR(.data);
 for i, c in enumerate(cores):
     with open('compile/core%d/main.c' % i, 'w') as f:
         f.write('#include "rvex.h"\n')
+        f.write('#include "record.h"\n')
         for b in c['benchmarks']:
             f.write('void %s_main(void);\n' % b)
-        f.write('volatile int *lptr = (volatile int*)0x%08X;\n' % (0x1F000000 + 0x00100000*i))
+        f.write('volatile char *record_ptr = (volatile char*)0x%08X;\n' % (0x1F000000 + 0x00100000*i))
         f.write('int main(void) {\n')
-        f.write(counter_save_code.format(int='int '))
+        f.write('    log_perfcount("*** After init ***");\n')
         for b in c['benchmarks']:
             f.write('    %s_main();\n' % b)
-            f.write(counter_save_code.format(int=''))
+            f.write('    log_perfcount("*** After %s ***");\n' % b)
+        f.write('    return 0;\n')
         f.write('}\n')
-    with open('compile/core%d/elf32rvex.x' % i, 'w') as f:
-        f.write(elf32rvex % (i * 32*1024*1024))
-
-# TODO makefiles
+    with open('compile/core%d/config.x' % i, 'w') as f:
+        f.write(linkerscript % (i * 32*1024*1024))
+    with open('compile/core%d/Makefile' % i, 'w') as f:
+        f.write('\n')
+        f.write('TARGETS      = _start main record common bcopy floatlib %s\n' % ' '.join([b + '-sub' for b in c['benchmarks']]))
+        f.write('ISSUE_WIDTH  = %s\n' % c['issuewidth'])
+        f.write('BORROW       = %s\n' % c['borrow'])
+        f.write('LANECONFIG   = %s\n' % c['laneconfig'])
+        f.write('BUNDLE_ALIGN = %s\n' % c['stopbit'])
+        f.write('CFLAGS       = -O3\n')
+        f.write('\n')
+        f.write('include /home/user/workspace/assignment2/utils/compile.makefile\n')
+        f.write('\n')
 
 # Generate the grlib config.vhd files.
 config_vhd_head = """
@@ -389,6 +417,7 @@ config_vhd_core = """
         dataCacheLinesLog2    => {dataCacheLinesLog2}
       ), cache_valid => true)"""
 config_vhd_foot = """
+  
   );
 -- Total number of processors
   constant CFG_NLG : integer := rvex_grlib_num_lane_groups(CFG_RVEX_CFG);
@@ -414,8 +443,9 @@ end;
 """
 with open('synth/config.vhd', 'w') as f:
     f.write(config_vhd_head.format(num_cores=len(cores)))
+    cs = []
     for i, c in enumerate(cores):
-        f.write(config_vhd_core.format(
+        cs.append(config_vhd_core.format(
             index               = i,
             numLanesLog2        = c['numlaneslog2'],
             bundleAlignLog2     = c['bundlealignlog2'],
@@ -426,7 +456,9 @@ with open('synth/config.vhd', 'w') as f:
             instrCacheLinesLog2 = c['icachelog2'],
             dataCacheLinesLog2  = c['dcachelog2']
         ))
+    f.write(',\n'.join(cs))
     f.write(config_vhd_foot)
+ln('/home/user/workspace/assignment2/utils/synth.makefile', 'synth/Makefile')
 
 # sim
 # compile

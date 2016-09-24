@@ -13,10 +13,15 @@ for i in range(20):
         dirs['platform'] = d
         dirs['manifest'] = d + os.sep + 'archive-manifest'
     
-    # Look for the 
+    # Look for the rvex-rewrite directory.
     if 'versions' in files and 'tools' in files and 'platform' in files and 'lib' in files:
         dirs['root'] = d
         break
+    
+    if 'rvex-rewrite' in files:
+        dirs['root'] = d + os.sep + 'rvex-rewrite'
+        break
+    
     if d == '.':
         d = '..'
     else:
