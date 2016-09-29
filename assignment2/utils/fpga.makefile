@@ -1,5 +1,7 @@
 
 RVEX_REWRITE = /home/user/workspace/rvex-rewrite
+SCRIPTS_DIR = /home/user/workspace/tools/scripts
+RESULTS_DIR = ../results
 PLATFORM = $(RVEX_REWRITE)/platform/ml605-grlib-bare
 ARCHIVE_TOOLS = $(RVEX_REWRITE)/versions/tools
 ARCHIVE_DIR = work/archive
@@ -10,7 +12,24 @@ WITH_ISE = source /home/user/workspace/tools/scripts/sx &&
 WITH_SIM = source /home/user/workspace/tools/scripts/sm &&
 
 .PHONY: all
-all: synth
+all:
+	@echo ""
+	@echo "FPGA commands:"
+	@echo ""
+	@echo "make sim   - simulates the FPGA platform with the current source code"
+	@echo "             in modelsim. Generates performance results including cache"
+	@echo "             behavior, though with a simplified memory latency model."
+	@echo ""
+	@echo "make synth - synthesizes the design. Generates area utilization info"
+	@echo "             and allows testing your design on the boardserver."
+	@echo ""
+	@echo "make run   - sends the design to the boardserver to measure performance."
+	@echo "             Requires you to have already synthesized the design."
+	@echo ""
+	@echo "make clean - deletes all intermediate and output files. If you get weird"
+	@echo "             errors from the other commands, running this and then"
+	@echo "             trying again is not a bad idea."
+	@echo ""
 
 # Call the makefile in the grlib directory to download and patch grlib.
 $(GRLIB_DIR)/grlib-gpl-1.3.7-b4144:
@@ -105,15 +124,32 @@ synth: work archive-manifest
 	$(ARCHIVE_TOOLS)/archive_platform_prepare.py $(ARCHIVE_DIR)
 	rm -f synth.patch
 	
+	# Something was throwing this away...
+	ln -s /home/user/workspace/rvex-rewrite/lib work/rvex-lib
+	
 	# Synthesis.
 	$(WITH_ISE) $(CHAIN) mig39 planahead MAP_COST_TABLE=$(MAP_COST_TABLE)
 	
-	# More version management.
+	# Gather the log files.
 	touch work/xilinx.log
 	cat work/planahead/leon3-*/*.runs/synth_1/runme.log >> work/xilinx.log
 	cat work/planahead/leon3-*/*.runs/impl_1/runme.log >> work/xilinx.log
-	cat work/planahead/leon3-*/*.runs/impl_1/*.twr > work/timing.twr
+	touch work/timing.twr
+	-cat work/planahead/leon3-*/*.runs/impl_1/*.twr > work/timing.twr
+	
+	# Archive the core.
 	$(ARCHIVE_TOOLS)/archive_platform_complete.py $(ARCHIVE_DIR)
+	
+	# Populate the output directory.
+	mkdir -p output
+	cp work/leon3mp.bit output/fpga.bit
+	cp work/xilinx.log output/xilinx.log
+	cp work/timing.twr output/timing.twr
+	
+	# Populate the results directory.
+	mkdir -p $(RESULTS_DIR)
+	python3 $(SCRIPTS_DIR)/gather_synth_results.py work/xilinx.log work/timing.log $(RESULTS_DIR)
+	
 
 # Shorthand for launching ISE.
 ise: work

@@ -8,8 +8,10 @@
 [core]
 ###############################################################################
 
-# Space separated list of benchmarks that should be run on this core. The
-# benchmarks are executed sequentially from the start of the list to the end.
+# Space separated list of benchmarks that should be run on this core. This is
+# only used for generating an example boot program that runs the benchmarks
+# sequentially; you can easily change this program and the benchmarks it runs
+# later without having to run the configure command again.
 BENCHMARKS = blit
 
 # Issue width and multiplier unit configuration. Each digit represents a lane,
@@ -37,4 +39,5 @@ DCACHE = 4k
 # behavior. Thus, for speed, you want this number as low as possible. The cost
 # is area.
 STOPBIT = 4
+
 

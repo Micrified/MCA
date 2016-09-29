@@ -3,6 +3,15 @@
 # This should point to the configuration file.
 CONFIG=configuration.mm
 
+# Make sure the configuration file exists.
+if [[ -e "$CONFIG" ]]
+then
+  true
+else
+  echo "Could not find configuration.mm in the current directory."
+  exit 1
+fi
+
 # Get the benchmark that the user wants to run. If the user only specifies the
 # benchmark name it will also work.
 BENCH=$1
