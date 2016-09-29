@@ -25,8 +25,10 @@ work: $(GRLIB_DIR)/grlib-gpl-1.3.7-b4144 config.vhd
 		cp -r $(GRLIB_DIR)/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605 .; \
 		mv ./leon3-xilinx-ml605 ./work; \
 		cd work && patch -p1 < $(PLATFORM)/work.patch; \
-		rm config.vhd; \
-		cp ../config.vhd config.vhd; \
+		rm -f config.vhd; \
+		ln -s ../config.vhd config.vhd; \
+		rm -rf rvex-lib; \
+		ln -s /home/user/workspace/rvex-rewrite/lib rvex-lib; \
 		echo "Rebuilt work directory from patchfile..."; \
 	fi
 
@@ -52,6 +54,8 @@ weak-clean:
 	rm -f work/*_beh.prj
 	rm -f work/xilinx.log
 	rm -f work/timing.twr
+	rm -f work/sim-init
+	rm -rf work/rvex-lib
 	rm -rf work/archive
 	rm -f synth.patch
 
@@ -66,30 +70,30 @@ clean: weak-clean
 gr-%: work
 	@$(CHAIN) $(patsubst gr-%,%,$@)
 
-# Shorthand notations for simulating, as descibed in the grlib leon project
-# readme. THIS DOES A LOT OF EXTRA WORK BECAUSE IT STARTS FROM SCRATCH. FIXME!
-.PHONY: sim-%
-sim-%: work compile-% archive-manifest
+# Compiles all VHDL files for modelsim to initialize simulation. This must be re-run when
+# any VHDL code is changed.
+work/sim-init: config.vhd
 	$(ARCHIVE_TOOLS)/gen_platform_version_pkg.py $(ARCHIVE_DIR)
 	$(WITH_ISE) $(WITH_SIM) $(CHAIN) \
-		distclean\
-		migclean\
-		scripts-clean\
 		mig39\
 		install-secureip\
 		compile_xilinx_verilog_lib\
 		compile.vsim\
 		vsim\
-		map_xilinx_verilog_lib\
-		vsim-launch
+		map_xilinx_verilog_lib
+	touch work/sim-init
 
-# Like sim-%, but does a little less extra work.
-.PHONY: resim-%
-resim-%: work compile-% archive-manifest
+# Chain to the compilation makefiles to get the memory srec file.
+.PHONY: compile
+compile: work
+	cd ../compile && $(MAKE)
+	cp -f ../compile/ram.srec work/ram.srec
+
+# Simulates using modelsim.
+.PHONY: sim
+sim: work compile archive-manifest work/sim-init
 	$(ARCHIVE_TOOLS)/gen_platform_version_pkg.py $(ARCHIVE_DIR)
 	$(WITH_ISE) $(WITH_SIM) $(CHAIN) \
-		vsim\
-		map_xilinx_verilog_lib\
 		vsim-launch
 
 # Runs synthesis. This also archives the core when it finishes generating.
@@ -114,7 +118,5 @@ synth: work archive-manifest
 # Shorthand for launching ISE.
 ise: work
 	$(WITH_ISE) $(CHAIN) \
-		scripts-clean\
-		migclean\
 		mig39\
 		ise-launch

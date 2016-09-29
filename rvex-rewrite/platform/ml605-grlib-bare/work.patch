@@ -1,6 +1,6 @@
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/ahb2mig_ml605.vhd work/ahb2mig_ml605.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/ahb2mig_ml605.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/ahb2mig_ml605.vhd	2016-09-19 13:59:40.075064962 +0200
++++ work/ahb2mig_ml605.vhd	2016-09-29 10:50:26.741344055 +0200
 @@ -39,9 +39,9 @@ package ml605 is
    constant DM_WIDTH  : integer := 8;
    constant DQ_WIDTH  : integer := 64;
@@ -24,7 +24,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
     variable v        : ddr_reg_type;   -- local variables for registers
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/config.vhd work/config.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/config.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/config.vhd	2016-09-19 13:59:40.075064962 +0200
++++ work/config.vhd	2016-09-29 10:50:26.751349031 +0200
 @@ -13,6 +13,15 @@
  library techmap;
  use techmap.gencomp.all;
@@ -41,7 +41,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  package config is
  -- Technology and synthesis options
    constant CFG_FABTECH : integer := virtex6;
-@@ -21,62 +30,38 @@ package config is
+@@ -21,62 +30,36 @@ package config is
    constant CFG_NOASYNC : integer := 0;
    constant CFG_SCAN : integer := 0;
  -- LEON3 processor core
@@ -104,22 +104,20 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +  constant CFG_RVEX_CFG : rvex_grlib_generic_config_array(0 to CFG_NRVEX-1) := (
 +    
 +    -- Core 0 configuration
-+    0 => rvex_grlib_cfg(
++    others => rvex_grlib_cfg(
 +      core => rvex_cfg(
-+        numLanesLog2          => 3,
-+        numLaneGroupsLog2     => 2,
-+        numContextsLog2       => 2,
++        numLanesLog2          => 1,
++        numLaneGroupsLog2     => 0,
++        numContextsLog2       => 0,
 +        bundleAlignLog2       => 0,
 +        limmhFromPreviousPair => 0,
-+        traceEnable           => 1,
++        traceEnable           => 0,
 +        perfCountSize         => 4,
-+        cachePerfCountEnable  => 7
++        cachePerfCountEnable  => 1
 +      ), core_valid => true,
 +    
 +      -- Cache configuration
 +      cache => cache_cfg(
-+        --instrCacheLinesLog2 => 10, -- 1024*32 = 32 kiB per block, 128 kiB total
-+        --dataCacheLinesLog2  => 11  -- 2048*4 = 8 kiB per block, 32 kiB total
 +        instrCacheLinesLog2 => 9,  -- 512*32 = 16 kiB per block, 64 kiB total
 +        dataCacheLinesLog2  => 10  -- 1024*4 = 4 kiB per block, 16 kiB total
 +      ), cache_valid => true)
@@ -135,7 +133,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
    constant CFG_FPNPEN : integer := 0;
    constant CFG_AHBIO : integer := 16#FFF#;
    constant CFG_APBADDR : integer := 16#800#;
-@@ -84,84 +69,13 @@ package config is
+@@ -84,84 +67,13 @@ package config is
    constant CFG_AHB_MONERR : integer := 0;
    constant CFG_AHB_MONWAR : integer := 0;
    constant CFG_AHB_DTRACE : integer := 0;
@@ -229,7 +227,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  end;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/gracectrl.vhd work/gracectrl.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/gracectrl.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/gracectrl.vhd	2016-09-19 13:59:40.075064962 +0200
++++ work/gracectrl.vhd	2016-09-29 10:50:26.751349031 +0200
 @@ -0,0 +1,421 @@
 +------------------------------------------------------------------------------
 +--  This file is a part of the GRLIB VHDL IP LIBRARY
@@ -654,7 +652,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/grlib_config.vhd work/grlib_config.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/grlib_config.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/grlib_config.vhd	2016-09-19 13:59:40.075064962 +0200
++++ work/grlib_config.vhd	2016-09-29 10:50:26.752349535 +0200
 @@ -38,7 +38,7 @@ package config is
  -- The value here sets the width of the AMBA AHB data vectors for all
  -- cores in the library.
@@ -666,7 +664,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  -- CORE_ACDM - Enable AMBA Compliant Data Muxing in cores
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/grlib_mig/mig39.prj work/grlib_mig/mig39.prj
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/grlib_mig/mig39.prj	2014-04-16 16:50:08.000000000 +0200
-+++ work/grlib_mig/mig39.prj	2016-09-19 13:59:40.075064962 +0200
++++ work/grlib_mig/mig39.prj	2016-09-29 10:50:26.752349535 +0200
 @@ -11,14 +11,14 @@
      <IODelayHighPerformanceMode>HIGH</IODelayHighPerformanceMode>
      <InternalVref>0</InternalVref>
@@ -694,7 +692,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
              <Pin SignalName="ddr3_addr[3]" PINNumber="E16" SignalGroup="Address" Bank="36" />
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp_mig39.ucf work/leon3mp_mig39.ucf
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp_mig39.ucf	2014-04-16 16:50:08.000000000 +0200
-+++ work/leon3mp_mig39.ucf	2016-09-19 13:59:40.075064962 +0200
++++ work/leon3mp_mig39.ucf	2016-09-29 10:50:26.753350039 +0200
 @@ -1,160 +1,256 @@
 -
 -NET "clk_ref_p" TNM_NET = TNM_clk_ref;
@@ -1111,7 +1109,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  OFFSET = OUT : 20.000 : AFTER clk_33 ;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp.ucf work/leon3mp.ucf
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp.ucf	2014-04-16 16:50:08.000000000 +0200
-+++ work/leon3mp.ucf	2016-09-19 13:59:40.079064929 +0200
++++ work/leon3mp.ucf	2016-09-29 10:50:26.755351048 +0200
 @@ -1,544 +1,579 @@
 -############################################################################
 -## 
@@ -2350,7 +2348,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +INST "*/pcie_clocking_i/mmcm_adv_i" LOC = MMCM_ADV_X0Y7;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp.vhd work/leon3mp.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3mp.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/leon3mp.vhd	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3mp.vhd	2016-09-29 11:31:27.090644419 +0200
 @@ -18,7 +18,7 @@
  --
  --  You should have received a copy of the GNU General Public License
@@ -2360,7 +2358,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  ------------------------------------------------------------------------------
  
  library ieee;
-@@ -45,808 +45,763 @@ library esa;
+@@ -45,808 +45,909 @@ library esa;
  use esa.memoryctrl.all;
  use work.config.all;
  use work.ml605.all;
@@ -2375,6 +2373,11 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +use rvex.core_pkg.all;
 +use rvex.cache_pkg.all;
 +use rvex.rvsys_grlib_pkg.all;
++-- pragma translate_off
++use rvex.utils_pkg.all;
++use rvex.simUtils_pkg.all;
++use rvex.simUtils_mem_pkg.all;
++-- pragma translate_on
 +library unisim;
 +use unisim.vcomponents.all;
 +library work;
@@ -2388,8 +2391,11 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 -    disas    : integer := CFG_DISAS;     -- Enable disassembly to console
 -    dbguart  : integer := CFG_DUART;     -- Print UART on console
 -    pclow    : integer := CFG_PCLOW;
-     SIM_BYPASS_INIT_CAL : string := "OFF"
-     );
+-    SIM_BYPASS_INIT_CAL : string := "OFF"
+-    );
++    SIM_BYPASS_INIT_CAL : string := "OFF";
++    DISABLE_DDR_SIM : boolean := false
++  );
    port (
 -    reset     : in    std_ulogic;
 -    errorn    : out   std_ulogic;
@@ -3496,19 +3502,6 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 -    emdc_pad : outpad generic map (level => cmos, voltage => x25v, tech => padtech)
 -      port map (emdc, etho.mdc);
 -  end generate;
--
-------------------------------------------------------------------------
-----  AHB ROM ----------------------------------------------------------
-------------------------------------------------------------------------
--
--  bpromgen : if CFG_AHBROMEN /= 0 generate
--    brom : entity work.ahbrom
--      generic map (hindex => 6, haddr => CFG_AHBRODDR, pipe => CFG_AHBROPIP)
--      port map ( rstn, clkm, ahbsi, ahbso(6));
--  end generate;
--  nobpromgen : if CFG_AHBROMEN = 0 generate
--     ahbso(6) <= ahbs_none;
--  end generate;
 +    
 +  end block;
 +  
@@ -3552,7 +3545,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +        CFG                     => CFG_RVEX_CFG(i),
 +        PLATFORM_TAG            => RVEX_PLATFORM_TAG,
 +        AHB_MASTER_INDEX_START  => LIND,
-+        CHECK_MEM               => true,
++        CHECK_MEM               => false,
 +        CHECK_MEM_FILE          => "ram.srec"
 +      )
 +      port map (
@@ -3572,37 +3565,23 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +        rv2rctrl_traceStall     => rv2rctrl_traceStall(i),
 +        rctrl2rv_traceStall     => rctrl2any_traceStall,
 +        rctrl2rv_reset          => irq2rv_reset(CIND+CNUM-1 downto CIND),
-+        rctrl2rv_resetVect      => irq2rv_resetVect(CIND+CNUM-1 downto CIND),
++        --rctrl2rv_resetVect      => irq2rv_resetVect(CIND+CNUM-1 downto CIND), -- Use the CFG reset vectors
 +        rv2rctrl_done           => rv2irq_done(CIND+CNUM-1 downto CIND),
 +        gpio_dip                => dipsw_int
 +      );
  
 ------------------------------------------------------------------------
-----  AHB RAM ----------------------------------------------------------
+----  AHB ROM ----------------------------------------------------------
 ------------------------------------------------------------------------
 -
--  ahbramgen : if CFG_AHBRAMEN = 1 generate
--    ahbram0 : ahbram
--      generic map (hindex => 3, haddr => CFG_AHBRADDR, tech => CFG_MEMTECH,
--                   kbytes => CFG_AHBRSZ, pipe => CFG_AHBRPIPE)
--      port map (rstn, clkm, ahbsi, ahbso(3));
+-  bpromgen : if CFG_AHBROMEN /= 0 generate
+-    brom : entity work.ahbrom
+-      generic map (hindex => 6, haddr => CFG_AHBRODDR, pipe => CFG_AHBROPIP)
+-      port map ( rstn, clkm, ahbsi, ahbso(6));
+-  end generate;
+-  nobpromgen : if CFG_AHBROMEN = 0 generate
+-     ahbso(6) <= ahbs_none;
    end generate;
--  nram : if CFG_AHBRAMEN = 0 generate ahbso(3) <= ahbs_none; end generate;
--
-------------------------------------------------------------------------
-----  Test report module  ----------------------------------------------
-------------------------------------------------------------------------
--
---- pragma translate_off
--
--  test0 : ahbrep generic map (hindex => 4, haddr => 16#200#)
--	port map (rstn, clkm, ahbsi, ahbso(4));
--
---- pragma translate_on
--
-------------------------------------------------------------------------
-----  Drive unused bus elements  ---------------------------------------
-------------------------------------------------------------------------
 +  
 +  -- Merge the trace stall signals.
 +  trace_merge: process (rv2rctrl_traceStall) is
@@ -3628,9 +3607,15 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +    reset <= not rstn;
 +    clk <= clkm;
  
--  nam1 : for i in (CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_GRETH+1+CFG_PCIEXP) to NAHBMST-1 generate
--    ahbmo(i) <= ahbm_none;
--  end generate;
+------------------------------------------------------------------------
+----  AHB RAM ----------------------------------------------------------
+------------------------------------------------------------------------
+-
+-  ahbramgen : if CFG_AHBRAMEN = 1 generate
+-    ahbram0 : ahbram
+-      generic map (hindex => 3, haddr => CFG_AHBRADDR, tech => CFG_MEMTECH,
+-                   kbytes => CFG_AHBRSZ, pipe => CFG_AHBRPIPE)
+-      port map (rstn, clkm, ahbsi, ahbso(3));
 +    irqctrl: entity rvex.periph_irq
 +      generic map (
 +        BASE_ADDRESS            => X"D2000000",
@@ -3676,71 +3661,230 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +  ------------------------------------------------------------------------------
 +  -- Memory controller
 +  ------------------------------------------------------------------------------
-+  
-+  -- MIG instantiation.
-+  ddr3ctrl: entity work.mig_37
-+    generic map (
-+      SIM_BYPASS_INIT_CAL       => SIM_BYPASS_INIT_CAL,
-+      CLKOUT_DIVIDE4            => work.config.CFG_MIG_CLK4
-+    )
-+    port map (
-+      clk_ref_p                 => clk_ref_p,
-+      clk_ref_n                 => clk_ref_n,
-+      ddr3_dq                   => ddr3_dq,
-+      ddr3_addr                 => ddr3_addr,
-+      ddr3_ba                   => ddr3_ba,
-+      ddr3_ras_n                => ddr3_ras_n,
-+      ddr3_cas_n                => ddr3_cas_n,
-+      ddr3_we_n                 => ddr3_we_n,
-+      ddr3_reset_n              => ddr3_reset_n,
-+      ddr3_cs_n                 => ddr3_cs_n,
-+      ddr3_odt                  => ddr3_odt,
-+      ddr3_cke                  => ddr3_cke,
-+      ddr3_dm                   => ddr3_dm,
-+      ddr3_dqs_p                => ddr3_dqs_p,
-+      ddr3_dqs_n                => ddr3_dqs_n,
-+      ddr3_ck_p                 => ddr3_ck_p,
-+      ddr3_ck_n                 => ddr3_ck_n,
-+      app_wdf_wren              => migi.app_wdf_wren,
-+      app_wdf_data              => migi.app_wdf_data,
-+      app_wdf_mask              => migi.app_wdf_mask,
-+      app_wdf_end               => migi.app_wdf_end,
-+      app_addr                  => migi.app_addr,
-+      app_cmd                   => migi.app_cmd,
-+      app_en                    => migi.app_en,
-+      app_rdy                   => migo.app_rdy,
-+      app_wdf_rdy               => migo.app_wdf_rdy,
-+      app_rd_data               => migo.app_rd_data,
-+      app_rd_data_valid         => migo.app_rd_data_valid,
-+      tb_rst                    => open,
-+      tb_clk                    => clkddr,
-+      clk_ahb                   => clkm,
-+      clk100                    => clk100,
-+      phy_init_done             => phy_init_done,
-+      sys_rst_13                => reset,
-+      sys_rst_14                => rstraw
-+    );
-+  
-+  ahb2mig0 : ahb2mig_ml605
-+    generic map (
-+      hindex                    => 0,
-+      haddr                     => 16#000#,
-+      hmask                     => 16#C00#,
-+      MHz                       => 400,  -- Only used for sim debug messages.
-+      Mbyte                     => 1024, -- Only used for sim debug messages.
-+      nosync                    => boolean'pos(CFG_MIG_CLK4=12) --CFG_CLKDIV/12)
-+    ) 
-+    port map (
-+      rst                       => rstn,
-+      clk_ahb                   => clkm,
-+      clk_ddr                   => clkddr,
-+      ahbsi                     => ahbsi,
-+      ahbso                     => ahbso(0),
-+      migi                      => migi,
-+      migo                      => migo
-+    );
++  -- pragma translate_off
++  mig_gen: if not DISABLE_DDR_SIM generate
++  begin
++  -- pragma translate_on
 +    
-+  
++    -- MIG instantiation.
++    ddr3ctrl: entity work.mig_37
++      generic map (
++        SIM_BYPASS_INIT_CAL       => SIM_BYPASS_INIT_CAL,
++        CLKOUT_DIVIDE4            => work.config.CFG_MIG_CLK4
++      )
++      port map (
++        clk_ref_p                 => clk_ref_p,
++        clk_ref_n                 => clk_ref_n,
++        ddr3_dq                   => ddr3_dq,
++        ddr3_addr                 => ddr3_addr,
++        ddr3_ba                   => ddr3_ba,
++        ddr3_ras_n                => ddr3_ras_n,
++        ddr3_cas_n                => ddr3_cas_n,
++        ddr3_we_n                 => ddr3_we_n,
++        ddr3_reset_n              => ddr3_reset_n,
++        ddr3_cs_n                 => ddr3_cs_n,
++        ddr3_odt                  => ddr3_odt,
++        ddr3_cke                  => ddr3_cke,
++        ddr3_dm                   => ddr3_dm,
++        ddr3_dqs_p                => ddr3_dqs_p,
++        ddr3_dqs_n                => ddr3_dqs_n,
++        ddr3_ck_p                 => ddr3_ck_p,
++        ddr3_ck_n                 => ddr3_ck_n,
++        app_wdf_wren              => migi.app_wdf_wren,
++        app_wdf_data              => migi.app_wdf_data,
++        app_wdf_mask              => migi.app_wdf_mask,
++        app_wdf_end               => migi.app_wdf_end,
++        app_addr                  => migi.app_addr,
++        app_cmd                   => migi.app_cmd,
++        app_en                    => migi.app_en,
++        app_rdy                   => migo.app_rdy,
++        app_wdf_rdy               => migo.app_wdf_rdy,
++        app_rd_data               => migo.app_rd_data,
++        app_rd_data_valid         => migo.app_rd_data_valid,
++        tb_rst                    => open,
++        tb_clk                    => clkddr,
++        clk_ahb                   => clkm,
++        clk100                    => clk100,
++        phy_init_done             => phy_init_done,
++        sys_rst_13                => reset,
++        sys_rst_14                => rstraw
++      );
++    
++    ahb2mig0 : ahb2mig_ml605
++      generic map (
++        hindex                    => 0,
++        haddr                     => 16#000#,
++        hmask                     => 16#C00#,
++        MHz                       => 400,  -- Only used for sim debug messages.
++        Mbyte                     => 1024, -- Only used for sim debug messages.
++        nosync                    => boolean'pos(CFG_MIG_CLK4=12) --CFG_CLKDIV/12)
++      ) 
++      port map (
++        rst                       => rstn,
++        clk_ahb                   => clkm,
++        clk_ddr                   => clkddr,
++        ahbsi                     => ahbsi,
++        ahbso                     => ahbso(0),
++        migi                      => migi,
++        migo                      => migo
++      );
++    
++  -- pragma translate_off
+   end generate;
+-  nram : if CFG_AHBRAMEN = 0 generate ahbso(3) <= ahbs_none; end generate;
+-
+------------------------------------------------------------------------
+----  Test report module  ----------------------------------------------
+------------------------------------------------------------------------
+-
+--- pragma translate_off
+-
+-  test0 : ahbrep generic map (hindex => 4, haddr => 16#200#)
+-	port map (rstn, clkm, ahbsi, ahbso(4));
+-
+--- pragma translate_on
+-
+------------------------------------------------------------------------
+----  Drive unused bus elements  ---------------------------------------
+------------------------------------------------------------------------
+-
+-  nam1 : for i in (CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_GRETH+1+CFG_PCIEXP) to NAHBMST-1 generate
+-    ahbmo(i) <= ahbm_none;
++  sim_mem_gen: if DISABLE_DDR_SIM generate
++    signal reset        : std_logic;
++    signal bridge2model : bus_mst2slv_type;
++    signal model2bridge : bus_slv2mst_type;
++  begin
++    reset <= not rstn;
++    
++    -- Generate 400 MHz clock.
++    process is
++    begin
++      clkddr <= '1';
++      wait for 1250 ps;
++      clkddr <= '0';
++      wait for 1250 ps;
++    end process;
++    
++    -- Generate 100 MHz clock.
++    process is
++    begin
++      clk100 <= '1';
++      wait for 5000 ps;
++      clk100 <= '0';
++      wait for 5000 ps;
++    end process;
++    
++    -- Generate configurable clock (1200 MHz / CFG_MIG_CLK4).
++    process is
++    begin
++      clkm <= '1';
++      wait for CFG_MIG_CLK4 * 417 ps;
++      clkm <= '0';
++      wait for CFG_MIG_CLK4 * 417 ps;
++      clkm <= '1';
++      wait for CFG_MIG_CLK4 * 416 ps;
++      clkm <= '0';
++      wait for CFG_MIG_CLK4 * 417 ps;
++      clkm <= '1';
++      wait for CFG_MIG_CLK4 * 417 ps;
++      clkm <= '0';
++      wait for CFG_MIG_CLK4 * 416 ps;
++    end process;
++    
++    -- Generate PHY done signal.
++    process is
++    begin
++      phy_init_done <= '0';
++      wait for 1 us;
++      phy_init_done <= '1';
++      wait;
++    end process;
++    
++    -- Connect the DDR simulation model to nothing.
++    ddr3_dq      <= (others => 'Z');
++    ddr3_dm      <= (others => '0');
++    ddr3_addr    <= (others => '0');
++    ddr3_ba      <= (others => '0');
++    ddr3_ras_n   <= '1';
++    ddr3_cas_n   <= '1';
++    ddr3_we_n    <= '1';
++    ddr3_reset_n <= '0';
++    ddr3_cs_n    <= (others => '1');
++    ddr3_odt     <= (others => '0');
++    ddr3_cke     <= (others => '0');
++    ddr3_dqs_p   <= (others => 'Z');
++    ddr3_dqs_n   <= (others => 'Z');
++    ddr3_ck_p    <= (others => '0');
++    ddr3_ck_n    <= (others => '1');
++    
++    -- Convert the AHB bus slave interface to r-VEX bus.
++    mem_bridge_inst: entity rvex.ahb2bus
++      generic map (
++        AHB_INDEX       => 0,
++        AHB_ADDR        => 16#000#,
++        AHB_MASK        => 16#C00#,
++        AHB_VENDOR_ID   => VENDOR_TUDELFT,
++        AHB_DEVICE_ID   => TUDELFT_BRIDGE
++      )
++      port map (
++        reset           => reset,
++        clk             => clkm,
++        ahb2bridge      => ahbsi,
++        bridge2ahb      => ahbso(0),
++        bridge2bus      => bridge2model,
++        bus2bridge      => model2bridge
++      );
++    
++    -- Simulate the memory.
++    mem_model: process is
++      variable mem      : rvmem_memoryState_type;
++      variable readData : rvex_data_type;
++      variable l        : std.textio.line;
++      variable c        : character;
++    begin
++      
++      -- Load the srec file into the memory.
++      rvmem_clear(mem, '0');
++      rvmem_loadSRec(mem, "ram.srec");
++      
++      -- Initialize the bus output.
++      model2bridge <= BUS_SLV2MST_IDLE;
++      
++      -- Handle memory requests.
++      loop
++        
++        -- Wait for the next clock.
++        wait until rising_edge(clkm);
++        
++        -- If we have a request, delay for some amount of cycles.
++        if bridge2model.readEnable = '1' or bridge2model.writeEnable = '1' then
++          model2bridge <= BUS_SLV2MST_IDLE;
++          model2bridge.busy <= '1';
++          wait until rising_edge(clkm);
++          wait until rising_edge(clkm);
++          wait until rising_edge(clkm);
++          wait until rising_edge(clkm);
++          wait until rising_edge(clkm);
++        end if;
++        
++        -- Handle the bus request.
++        model2bridge <= BUS_SLV2MST_IDLE;
++        if bridge2model.readEnable = '1' then
++          rvmem_read(mem, bridge2model.address, readData);
++          model2bridge.readData <= readData;
++          model2bridge.ack <= '1';
++        elsif bridge2model.writeEnable = '1' then
++          rvmem_write(mem, bridge2model.address, bridge2model.writeData, bridge2model.writeMask);
++          model2bridge.ack <= '1';
++        end if;
++        
++      end loop;
++      
++    end process;
++    
+   end generate;
++  -- pragma translate_on
 +  ------------------------------------------------------------------------------
 +  -- GRMON JTAG interface
 +  ------------------------------------------------------------------------------
@@ -3899,7 +4043,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  end rtl;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/ahb2mig_ml605.vhd work/leon3-xilinx-ml605/ahb2mig_ml605.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/ahb2mig_ml605.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/ahb2mig_ml605.vhd	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3-xilinx-ml605/ahb2mig_ml605.vhd	2016-09-29 10:50:26.760353549 +0200
 @@ -0,0 +1,463 @@
 +------------------------------------------------------------------------------
 +--  This file is a part of the GRLIB VHDL IP LIBRARY
@@ -4366,7 +4510,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/ahbrom.vhd work/leon3-xilinx-ml605/ahbrom.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/ahbrom.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/ahbrom.vhd	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3-xilinx-ml605/ahbrom.vhd	2016-09-29 10:50:26.760353549 +0200
 @@ -0,0 +1,279 @@
 +
 +----------------------------------------------------------------------------
@@ -4649,7 +4793,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +  end;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/.config work/leon3-xilinx-ml605/.config
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/.config	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/.config	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3-xilinx-ml605/.config	2016-09-29 10:50:26.760353549 +0200
 @@ -0,0 +1,320 @@
 +#
 +# Automatically generated make config: don't edit
@@ -4973,7 +5117,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CONFIG_DEBUG_UART is not set
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.h work/leon3-xilinx-ml605/config.h
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.h	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.h	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3-xilinx-ml605/config.h	2016-09-29 10:50:26.761354051 +0200
 @@ -0,0 +1,298 @@
 +/*
 + * Automatically generated C config: don't edit
@@ -5275,7 +5419,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +#undef  CONFIG_DEBUG_UART
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.help work/leon3-xilinx-ml605/config.help
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.help	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.help	2016-09-19 13:59:40.083064897 +0200
++++ work/leon3-xilinx-ml605/config.help	2016-09-29 10:50:26.761354051 +0200
 @@ -0,0 +1,964 @@
 +
 +
@@ -6243,7 +6387,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.in work/leon3-xilinx-ml605/config.in
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.in	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.in	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/config.in	2016-09-29 10:50:26.762354552 +0200
 @@ -0,0 +1,104 @@
 +#
 +# LEON3 configuration written in linux configuration language
@@ -6351,7 +6495,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +endmenu
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd work/leon3-xilinx-ml605/config.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.vhd	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/config.vhd	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,167 @@
 +
 +
@@ -6522,7 +6666,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +end;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd.h work/leon3-xilinx-ml605/config.vhd.h
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd.h	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.vhd.h	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/config.vhd.h	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,162 @@
 +-- Technology and synthesis options
 +  constant CFG_FABTECH 	: integer := CONFIG_SYN_TECH;
@@ -6688,7 +6832,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd.in work/leon3-xilinx-ml605/config.vhd.in
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/config.vhd.in	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/config.vhd.in	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/config.vhd.in	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,23 @@
 +#include "config.h"
 +#include "tkconfig.h"
@@ -6715,7 +6859,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +end;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/default.sdc work/leon3-xilinx-ml605/default.sdc
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/default.sdc	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/default.sdc	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/default.sdc	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,49 @@
 +# Synplicity, Inc. constraint file
 +# /home/jiri/ibm/vhdl/grlib/boards/gr-xc3s-1500/default.sdc
@@ -6768,7 +6912,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +#
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/defconfig work/leon3-xilinx-ml605/defconfig
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/defconfig	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/defconfig	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/defconfig	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,279 @@
 +#
 +# Automatically generated make config: don't edit
@@ -7051,7 +7195,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CONFIG_DEBUG_UART is not set
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_config.vhd work/leon3-xilinx-ml605/grlib_config.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_config.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_config.vhd	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/grlib_config.vhd	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,68 @@
 +------------------------------------------------------------------------------
 +--  This file is a part of the GRLIB VHDL IP LIBRARY
@@ -7123,7 +7267,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +end;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.cgp work/leon3-xilinx-ml605/grlib_mig/mig39.cgp
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.cgp	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig39.cgp	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig39.cgp	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,22 @@
 +# Date: Wed Dec  5 12:56:18 2012
 +
@@ -7149,7 +7293,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CRC: 59c905fa
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.prj work/leon3-xilinx-ml605/grlib_mig/mig39.prj
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.prj	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig39.prj	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig39.prj	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,194 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<Project NoOfControllers="1" >
@@ -7347,7 +7491,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +</Project>
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.xco work/leon3-xilinx-ml605/grlib_mig/mig39.xco
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig39.xco	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig39.xco	2016-09-19 13:59:40.087064864 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig39.xco	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,49 @@
 +##############################################################
 +#
@@ -7400,7 +7544,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CRC: 1dbe8904
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.cgc work/leon3-xilinx-ml605/grlib_mig/mig.cgc
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.cgc	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig.cgc	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig.cgc	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,1635 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<spirit:design xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xilinx="http://www.xilinx.com" >
@@ -9039,7 +9183,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.cgp work/leon3-xilinx-ml605/grlib_mig/mig.cgp
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.cgp	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig.cgp	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig.cgp	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,22 @@
 +# Date: Mon Jun 13 20:41:14 2011
 +
@@ -9065,7 +9209,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CRC: db21485d
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.diff work/leon3-xilinx-ml605/grlib_mig/mig.diff
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.diff	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig.diff	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig.diff	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,416 @@
 +diff -Naur mig37/mig_37/user_design/rtl/ip_top/infrastructure.vhd /home/jiri/ibm/vhdl/grlib/lib/work/ml605/rtl/ip_top/infrastructure.vhd
 +--- mig37/mig_37/user_design/rtl/ip_top/infrastructure.vhd	2011-06-13 18:01:50.000000000 +0200
@@ -9485,7 +9629,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +    function CALC_CWL_M return integer is
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_infrastructure_patch.txt work/leon3-xilinx-ml605/grlib_mig/mig_infrastructure_patch.txt
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_infrastructure_patch.txt	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_infrastructure_patch.txt	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_infrastructure_patch.txt	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,109 @@
 +--- ./mig/user_design/rtl/ip_top/infrastructure.v	2012-12-18 14:40:25.000000000 +0100
 ++++ ./mig_patch/p/a/t/c/h/mig_design/infrastructure.v	2012-12-18 10:03:46.821589702 +0100
@@ -9598,7 +9742,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +   //  Various resets are generated to ensure that:
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_iodelay_ctrl_patch.txt work/leon3-xilinx-ml605/grlib_mig/mig_iodelay_ctrl_patch.txt
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_iodelay_ctrl_patch.txt	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_iodelay_ctrl_patch.txt	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_iodelay_ctrl_patch.txt	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,18 @@
 +--- ./mig/user_design/rtl/ip_top/iodelay_ctrl.v	2012-12-18 14:40:25.000000000 +0100
 ++++ ./mig_patch/p/a/t/c/h/mig_design/iodelay_ctrl.v	2012-12-17 07:40:31.662595674 +0100
@@ -9620,7 +9764,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +   // IDELAYCTRL reset
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_patch.txt work/leon3-xilinx-ml605/grlib_mig/mig_patch.txt
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_patch.txt	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_patch.txt	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_patch.txt	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,159 @@
 +--- ./mig/user_design/rtl/ip_top/mig.v	2012-12-18 14:40:26.000000000 +0100
 ++++ ./mig_patch/p/a/t/c/h/mig_design/mig.v	2012-12-18 14:24:36.329423978 +0100
@@ -9783,7 +9927,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +        .PSDONE           (pd_PSDONE),
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.prj work/leon3-xilinx-ml605/grlib_mig/mig.prj
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.prj	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig.prj	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig.prj	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,60 @@
 +<?xml version='1.0' encoding='UTF-8'?>
 +<Project NoOfControllers="1" >
@@ -9847,7 +9991,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +</Project>
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_reset13.diff work/leon3-xilinx-ml605/grlib_mig/mig_reset13.diff
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_reset13.diff	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_reset13.diff	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_reset13.diff	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,30 @@
 +--- /home/anandhavel/mig_37.vhd	2013-10-25 19:38:05.381163679 +0200
 ++++ mig_37/user_design/rtl/ip_top/mig_37.vhd	2013-10-25 19:48:18.649914855 +0200
@@ -9881,7 +10025,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +       PSEN             => pd_PSEN,
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_reset14.diff work/leon3-xilinx-ml605/grlib_mig/mig_reset14.diff
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_reset14.diff	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_reset14.diff	2016-09-19 13:59:40.091064832 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_reset14.diff	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,30 @@
 +--- /home/anandhavel/mig.v	2013-10-25 20:00:01.000000000 +0200
 ++++ mig/user_design/rtl/ip_top/mig.v	2013-10-25 20:02:02.115036358 +0200
@@ -9915,7 +10059,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +        .PSEN             (pd_PSEN),
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_ucf_patch.txt work/leon3-xilinx-ml605/grlib_mig/mig_ucf_patch.txt
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig_ucf_patch.txt	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig_ucf_patch.txt	2016-09-19 13:59:40.095064799 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig_ucf_patch.txt	2016-09-29 10:50:26.763355053 +0200
 @@ -0,0 +1,204 @@
 +--- ./mig/user_design/par/mig.ucf	2012-12-18 14:40:26.000000000 +0100
 ++++ ./mig_patch/p/a/t/c/h/mig_design/mig.ucf	2012-12-18 12:01:45.861514738 +0100
@@ -10123,7 +10267,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 ++INST "ddr3ctrl/u_infrastructure/u_mmcm_adv"      LOC = "MMCM_ADV_X0Y8"; #Banks 16, 26, 36
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.xco work/leon3-xilinx-ml605/grlib_mig/mig.xco
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/grlib_mig/mig.xco	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/grlib_mig/mig.xco	2016-09-19 13:59:40.095064799 +0200
++++ work/leon3-xilinx-ml605/grlib_mig/mig.xco	2016-09-29 10:50:26.771359057 +0200
 @@ -0,0 +1,42 @@
 +##############################################################
 +#
@@ -10169,7 +10313,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +# CRC:  362dace
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/gtxclk.vhd work/leon3-xilinx-ml605/gtxclk.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/gtxclk.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/gtxclk.vhd	2016-09-19 13:59:40.095064799 +0200
++++ work/leon3-xilinx-ml605/gtxclk.vhd	2016-09-29 10:50:26.771359057 +0200
 @@ -0,0 +1,78 @@
 +
 +library ieee;
@@ -10251,7 +10395,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/lconfig.tk work/leon3-xilinx-ml605/lconfig.tk
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/lconfig.tk	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/lconfig.tk	2016-09-19 13:59:40.103064734 +0200
++++ work/leon3-xilinx-ml605/lconfig.tk	2016-09-29 10:50:26.771359057 +0200
 @@ -0,0 +1,6563 @@
 +# FILE: header.tk
 +# This file is boilerplate TCL/TK function definitions for 'make xconfig'.
@@ -16818,7 +16962,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +#	}
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp_mig39.ucf work/leon3-xilinx-ml605/leon3mp_mig39.ucf
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp_mig39.ucf	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/leon3mp_mig39.ucf	2016-09-19 13:59:40.103064734 +0200
++++ work/leon3-xilinx-ml605/leon3mp_mig39.ucf	2016-09-29 10:50:26.778362575 +0200
 @@ -0,0 +1,195 @@
 +
 +NET "clk_ref_p" TNM_NET = TNM_clk_ref;
@@ -17017,7 +17161,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.ucf work/leon3-xilinx-ml605/leon3mp.ucf
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.ucf	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/leon3mp.ucf	2016-09-19 13:59:40.103064734 +0200
++++ work/leon3-xilinx-ml605/leon3mp.ucf	2016-09-29 10:50:26.778362575 +0200
 @@ -0,0 +1,613 @@
 +############################################################################
 +## 
@@ -17634,7 +17778,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.vhd work/leon3-xilinx-ml605/leon3mp.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/leon3mp.vhd	2016-09-19 13:59:40.103064734 +0200
++++ work/leon3-xilinx-ml605/leon3mp.vhd	2016-09-29 10:50:26.778362575 +0200
 @@ -0,0 +1,852 @@
 +------------------------------------------------------------------------------
 +--  LEON3 Demonstration design
@@ -18490,7 +18634,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +end rtl;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.xcf work/leon3-xilinx-ml605/leon3mp.xcf
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/leon3mp.xcf	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/leon3mp.xcf	2016-09-19 13:59:40.103064734 +0200
++++ work/leon3-xilinx-ml605/leon3mp.xcf	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,21 @@
 +
 +NET gmiiclk_p 	PERIOD = 8.000 ;
@@ -18516,7 +18660,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 \ No newline at end of file
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/linkprom work/leon3-xilinx-ml605/linkprom
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/linkprom	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/linkprom	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/linkprom	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,155 @@
 +/*  linkcmds
 + *
@@ -18675,7 +18819,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +}
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/Makefile work/leon3-xilinx-ml605/Makefile
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/Makefile	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/Makefile	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,202 @@
 +include .config
 +GRLIB=../..
@@ -18881,7 +19025,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +.PHONY : pcie pcieclean
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/pcie.diff work/leon3-xilinx-ml605/pcie.diff
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/pcie.diff	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/pcie.diff	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/pcie.diff	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,19 @@
 +diff -Naur pcie.org/v6_pcie_v1_7/source/v6_pcie_v1_7.vhd pcie/v6_pcie_v1_7/source/v6_pcie_v1_7.vhd
 +--- pcie.org/v6_pcie_v1_7/source/v6_pcie_v1_7.vhd	2013-07-16 16:50:59.000000000 +0200
@@ -18904,7 +19048,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/prom.h work/leon3-xilinx-ml605/prom.h
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/prom.h	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/prom.h	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/prom.h	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,10 @@
 +#define MCFG1 0x10380133
 +#define MCFG2 0xe6B80e50
@@ -18918,7 +19062,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/prom.srec work/leon3-xilinx-ml605/prom.srec
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/prom.srec	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/prom.srec	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/prom.srec	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,37 @@
 +S00C000070726F6D2E737265635A
 +S113000081D8200003000004821060E08188400051
@@ -18959,7 +19103,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +S9030000FC
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/README.txt work/leon3-xilinx-ml605/README.txt
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/README.txt	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/README.txt	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/README.txt	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,291 @@
 +This leon3 design is tailored to the Xilinx Virtex-6 ML605 board
 +
@@ -19254,7 +19398,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/sim.do work/leon3-xilinx-ml605/sim.do
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/sim.do	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/sim.do	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/sim.do	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,147 @@
 +###############################################################################
 +## (c) Copyright 2008 – 2009 Xilinx, Inc. All rights reserved.
@@ -19405,7 +19549,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +stop
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/svga2ch7301c.vhd work/leon3-xilinx-ml605/svga2ch7301c.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/svga2ch7301c.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/svga2ch7301c.vhd	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/svga2ch7301c.vhd	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,221 @@
 +------------------------------------------------------------------------------
 +--  This file is a part of the GRLIB VHDL IP LIBRARY
@@ -19630,7 +19774,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +end rtl;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/systest.c work/leon3-xilinx-ml605/systest.c
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/systest.c	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/systest.c	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/systest.c	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,10 @@
 +
 +main()
@@ -19644,7 +19788,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +}
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/testbench.vhd work/leon3-xilinx-ml605/testbench.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/testbench.vhd	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/testbench.vhd	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/testbench.vhd	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,377 @@
 +-----------------------------------------------------------------------------
 +--  LEON3 Demonstration design test bench
@@ -20025,7 +20169,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/tkconfig2.h work/leon3-xilinx-ml605/tkconfig2.h
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/tkconfig2.h	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/tkconfig2.h	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/tkconfig2.h	2016-09-29 10:50:26.781364072 +0200
 @@ -0,0 +1,12 @@
 +
 +#if defined CONFIG_FREQ60
@@ -20041,7 +20185,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +#endif
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/tkconfig.h work/leon3-xilinx-ml605/tkconfig.h
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/tkconfig.h	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/tkconfig.h	2016-09-19 13:59:40.107064701 +0200
++++ work/leon3-xilinx-ml605/tkconfig.h	2016-09-29 10:50:26.789368064 +0200
 @@ -0,0 +1,997 @@
 +#if defined CONFIG_SYN_INFERRED
 +#define CONFIG_SYN_TECH inferred
@@ -21042,7 +21186,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +#endif
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/wave.do work/leon3-xilinx-ml605/wave.do
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/leon3-xilinx-ml605/wave.do	1970-01-01 01:00:00.000000000 +0100
-+++ work/leon3-xilinx-ml605/wave.do	2016-09-19 13:59:40.111064669 +0200
++++ work/leon3-xilinx-ml605/wave.do	2016-09-29 10:50:26.789368064 +0200
 @@ -0,0 +1,76 @@
 +onerror {resume}
 +quietly WaveActivateNextPane {} 0
@@ -21122,7 +21266,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +WaveRestoreZoom {54325843 ps} {54327644 ps}
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/Makefile work/Makefile
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/Makefile	2014-04-16 16:50:08.000000000 +0200
-+++ work/Makefile	2016-09-19 14:13:50.644181824 +0200
++++ work/Makefile	2016-09-29 10:55:06.444555633 +0200
 @@ -1,5 +1,5 @@
  include .config
 -GRLIB=../..
@@ -21342,7 +21486,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  TECHLIBS = secureip unisim
 -VLOGOPT= -O0
 -VCOMOPT= -explicit -O0 
-+EXTRALIBS=../../../lib
++EXTRALIBS=rvex-lib
 +VLOGOPT= -O0 +incdir+../design/tb/include
 +VCOMOPT= -explicit -O0
  ifeq ("$(GRLIB_SIMULATOR)","ALDEC")
@@ -22012,7 +22156,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 -#TIMESPEC "TS_RESETN" = FROM FFS(*) TO FFS(trn_reset_n_i) 8 ns;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/svga2ch7301c.vhd work/svga2ch7301c.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/svga2ch7301c.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/svga2ch7301c.vhd	2016-09-19 13:59:40.111064669 +0200
++++ work/svga2ch7301c.vhd	2016-09-29 10:50:26.801374096 +0200
 @@ -98,9 +98,9 @@ architecture rtl of svga2ch7301c is
    signal d0, d1 : std_logic_vector(11 downto 0);
    signal red, green, blue : std_logic_vector(7 downto 0);
@@ -22055,7 +22199,7 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
  end rtl;
 diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/testbench.vhd work/testbench.vhd
 --- ../../grlib/grlib-gpl-1.3.7-b4144/designs/leon3-xilinx-ml605/testbench.vhd	2014-04-16 16:51:31.000000000 +0200
-+++ work/testbench.vhd	2016-09-19 14:24:55.186848324 +0200
++++ work/testbench.vhd	2016-09-29 10:50:26.803375091 +0200
 @@ -18,7 +18,7 @@
  --
  --  You should have received a copy of the GNU General Public License
@@ -22128,8 +22272,9 @@ diff -rupN '--exclude=ram.srec' '--exclude=ptag.vhd' ../../grlib/grlib-gpl-1.3.7
 +
    d3 : entity work.leon3mp
 -    generic map (fabtech, memtech, padtech, disas, dbguart, pclow,
+-                 SIM_BYPASS_INIT_CAL)
 +    generic map (fabtech, memtech, padtech,
-                  SIM_BYPASS_INIT_CAL)
++                 SIM_BYPASS_INIT_CAL, true)
      port map (
 -      reset     => rst,
 -      errorn    => error,

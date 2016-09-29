@@ -7,21 +7,29 @@
 // data written here up to the first 0 encountered.
 extern volatile char *record_ptr;
 
+// This is the UART data register. For the UART to work properly in hardware
+// you need to wait for the FIFO buffer to be ready, but the simulation doesn't
+// care, and the hardware UART output is not used.
+#define UART (*((volatile unsigned char *)(0xD1000000)))
+
 int putchar(int character) {
     *record_ptr++ = character;
+    UART = character;
     *record_ptr = 0;
     return 0;
 }
 
 int putc(int character) {
     *record_ptr++ = character;
+    UART = character;
     *record_ptr = 0;
     return 0;
 }
 
 int puts(const char *str) {
     while (*str) {
-        *record_ptr++ = *str++;
+        *record_ptr++ = *str;
+        UART = *str++;
     }
     *record_ptr = 0;
     return 0;
@@ -47,6 +55,7 @@ int putd(int value) {
     // Handle negative numbers.
     if (value < 0) {
         *record_ptr++ = '-';
+        UART = '-';
         value = -value;
     }
     val = (unsigned int)value;
@@ -61,6 +70,7 @@ int putd(int value) {
     }
     if (i == 10) {
         *record_ptr++ = '0';
+        UART = '0';
     } else {
         for (; i < 10; i++) {
             int dec = decades[i];
@@ -70,6 +80,7 @@ int putd(int value) {
             if (val >= (dec<<1)) { val -= (dec<<1); c += 2; }
             if (val >= (dec<<0)) { val -= (dec<<0); c += 1; }
             *record_ptr++ = c;
+            UART = c;
         }
     }
     *record_ptr = 0;
@@ -82,11 +93,14 @@ int putx(int value) {
     char c;
     
     *record_ptr++ = '0';
+    UART = '0';
     *record_ptr++ = 'x';
+    UART = 'x';
     for (i = 0; i < 8; i++) {
         c = (char)(val >> 28);
         c = (c < 10) ? ('0' + c) : ('A' + c - 10);
         *record_ptr++ = c;
+        UART = c;
         val <<= 4;
     }
     *record_ptr = 0;
@@ -105,12 +119,16 @@ int rvex_fail(const char *str) {
 
 void log_value(const char *s, int value) {
     while (*s) {
-        *record_ptr++ = *s++;
+        *record_ptr++ = *s;
+        UART = *s++;
     }
     *record_ptr++ = ':';
+    UART = ':';
     *record_ptr++ = ' ';
+    UART = ' ';
     putd(value);
     *record_ptr++ = '\n';
+    UART = '\n';
     *record_ptr = 0;
 }
 
@@ -134,6 +152,7 @@ void log_perfcount(const char *checkpoint_name) {
     // Record the name of the checkpoint.
     puts(checkpoint_name);
     *record_ptr++ = '\n';
+    UART = '\n';
     *record_ptr = 0;
     
     // Record the counter values.
@@ -151,6 +170,7 @@ void log_perfcount(const char *checkpoint_name) {
     
     // Empty line at the end to separate the checkpoints nicely.
     *record_ptr++ = '\n';
+    UART = '\n';
     *record_ptr = 0;
     
 }
