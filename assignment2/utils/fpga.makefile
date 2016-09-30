@@ -128,7 +128,7 @@ synth: work archive-manifest
 	ln -s /home/user/workspace/rvex-rewrite/lib work/rvex-lib
 	
 	# Synthesis.
-	$(WITH_ISE) $(CHAIN) mig39 planahead MAP_COST_TABLE=$(MAP_COST_TABLE)
+	$(WITH_ISE) $(CHAIN) mig39 planahead MAP_COST_TABLE=2
 	
 	# Gather the log files.
 	touch work/xilinx.log
