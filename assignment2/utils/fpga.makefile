@@ -11,8 +11,17 @@ CHAIN = cd work && $(MAKE) GRLIB=$(GRLIB_DIR)/grlib-gpl-1.3.7-b4144
 WITH_ISE = source /home/user/workspace/tools/scripts/sx &&
 WITH_SIM = source /home/user/workspace/tools/scripts/sm &&
 
-.PHONY: all
-all:
+OUTPUT_DIR = output
+OUTPUT_BIT = $(OUTPUT_DIR)/fpga.bit
+OUTPUT_LOG = $(OUTPUT_DIR)/xilinx.log
+OUTPUT_TWR = $(OUTPUT_DIR)/timing.twr
+
+RAM_SREC = ../compile/ram.srec
+
+BOARDSERVER_DIR = /home/user/boardserver
+
+.PHONY: help
+help:
 	@echo ""
 	@echo "FPGA commands:"
 	@echo ""
@@ -24,7 +33,8 @@ all:
 	@echo "             and allows testing your design on the boardserver."
 	@echo ""
 	@echo "make run   - sends the design to the boardserver to measure performance."
-	@echo "             Requires you to have already synthesized the design."
+	@echo "             If you haven't synthesized yet, this will ask you if you"
+	@echo "             want to do that first."
 	@echo ""
 	@echo "make clean - deletes all intermediate and output files. If you get weird"
 	@echo "             errors from the other commands, running this and then"
@@ -86,6 +96,7 @@ clean: weak-clean
 	rm archive-manifest
 
 # Chain to the grlib makefile.
+.PHONY: gr-%
 gr-%: work
 	@$(CHAIN) $(patsubst gr-%,%,$@)
 
@@ -106,11 +117,11 @@ work/sim-init: config.vhd
 .PHONY: compile
 compile: work
 	cd ../compile && $(MAKE)
-	cp -f ../compile/ram.srec work/ram.srec
 
 # Simulates using modelsim.
 .PHONY: sim
 sim: work compile archive-manifest work/sim-init
+	cp -f $(RAM_SREC) work/ram.srec
 	$(ARCHIVE_TOOLS)/gen_platform_version_pkg.py $(ARCHIVE_DIR)
 	$(WITH_ISE) $(WITH_SIM) $(CHAIN) \
 		vsim-launch
@@ -141,10 +152,10 @@ synth: work archive-manifest
 	$(ARCHIVE_TOOLS)/archive_platform_complete.py $(ARCHIVE_DIR)
 	
 	# Populate the output directory.
-	mkdir -p output
-	cp work/leon3mp.bit output/fpga.bit
-	cp work/xilinx.log output/xilinx.log
-	cp work/timing.twr output/timing.twr
+	mkdir -p $(OUTPUT_DIR)
+	cp work/leon3mp.bit $(OUTPUT_BIT)
+	cp work/xilinx.log $(OUTPUT_LOG)
+	cp work/timing.twr $(OUTPUT_TWR)
 	
 	# Populate the results directory.
 	mkdir -p $(RESULTS_DIR)
@@ -152,7 +163,12 @@ synth: work archive-manifest
 	
 
 # Shorthand for launching ISE.
+.PHONY: ise
 ise: work
 	$(WITH_ISE) $(CHAIN) \
 		mig39\
 		ise-launch
+
+.PHONY: run
+run: compile
+	python3 $(SCRIPTS_DIR)/boardserver_run.py $(BOARDSERVER_DIR) $(OUTPUT_BIT) $(RAM_SREC) $(RESULTS_DIR)
