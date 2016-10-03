@@ -16,14 +16,7 @@ if not os.path.isfile('configuration.rvex'):
 
 # Parse the configuration file.
 errors = False
-keys = set(['BENCHMARKS', 'CONFIG', 'ICACHE', 'DCACHE', 'STOPBIT'])#, 'FORWARDING'])
-
-# The option to disable forwarding is removed because it comes with a whole
-# heap of problems:
-#  - The VEX compiler does not handle ALU latencies greater than one correctly.
-#  - There is currently no option to fix that with vexparse. Also, vexparse
-#    tries to make generic binaries which affects performance and is not
-#    necessary here.
+keys = set(['CONFIG', 'CONTEXTS', 'ICACHE', 'DCACHE', 'STOPBIT'])
 
 with open('configuration.rvex', 'r') as f:
     lines = f.readlines()
@@ -53,16 +46,12 @@ for c in cores:
         if k not in c:
             print('Error: core defined on line %d is missing configuration key %s.' % (c['linenr'], k))
             errors = True
-    if 'FORWARDING' not in c:
-        c['FORWARDING'] = (-1, '1')
     linenr = c['linenr']
     del c['linenr']
     nc = {}
     for k in c:
         n, v = c[k]
-        if k == 'BENCHMARKS':
-            nc['benchmarks'] = v.split()
-        elif k.endswith('CACHE'):
+        if k.endswith('CACHE'):
             mult = 1
             if v.endswith('k'):
                 mult = 1024
@@ -78,89 +67,185 @@ for c in cores:
                 errors = True
                 continue
             v = int.bit_length(v) - 1
-            nc[k[0].lower() + 'cachelog2'] = v
+            nc[k[0].lower() + 'cacheLog2'] = v
         elif k == 'CONFIG':
-            nc['multiplier_count'] = v.count('1')
+            v = v[::-1]
+            vc = v.replace(':', '')
+            v = v.split(':')
+            
+            # Check multiplier config.
             try:
-                nv = int(v[::-1], 16)
+                nv = int(vc, 16)
                 if nv & 0xEEEEEEEE:
                     raise ValueError()
             except ValueError:
                 print('Error: parse error on line %d.' % n)
                 errors = True
                 continue
-            if len(v) == 2:
-                nc['issuewidth'] = 2
-                nc['numlaneslog2'] = 1
-                nc['laneconfig'] = '%02X' % (0x59 | (nv << 1))
-                nc['multipliers'] = '%02X' % nv
-                nc['borrow'] = '1.0'
-            elif len(v) == 4:
-                nc['issuewidth'] = 4
-                nc['numlaneslog2'] = 2
-                nc['laneconfig'] = '%04X' % (0x5119 | (nv << 1))
-                nc['multipliers'] = '%04X' % nv
-                nc['borrow'] = '1.0.3.2'
-            elif len(v) == 8:
-                nc['issuewidth'] = 8
-                nc['numlaneslog2'] = 3
-                nc['laneconfig'] = '%08X' % (0x51111119 | (nv << 1))
-                nc['multipliers'] = '%08X' % nv
-                nc['borrow'] = '1.0.3.2.5.4.7.6'
-            else:
+            if nv == 0:
+                print('Error: there should be at least one multiplier in the core on line %d.' % n)
+                errors = True
+                continue
+            
+            # Check issue width.
+            if len(vc) not in [2, 4, 8]:
                 print('Error: issue width must be 2, 4, or 8 on line %d.' % n)
                 errors = True
                 continue
-        elif k == 'FORWARDING':
-            if v not in ['0', '1']:
-                print('Error: forwarding must be 1 or 0 on line %d.' % n)
+            
+            # Check reconfiguration config.
+            if len(v) not in [1, 2, 4]:
+                print('Error: all groups must have the same issue width on line %d.' % n)
                 errors = True
                 continue
-            nc['forwarding'] = int(v)
+            if len(v[0]) not in [2, 4, 8]:
+                print('Error: the issue width of a group must be 2, 4, or 8 on line %d.' % n)
+                errors = True
+                break
+            if '1' not in v[0]:
+                print('Error: each group should have at least one multiplier on line %d.' % n)
+                errors = True
+                break
+            for vg in v:
+                if vg != v[0]:
+                    print('Error: all groups must have the same issue width and multiplier config on line %d.' % n)
+                    errors = True
+                    break
+            
+            # Configure the hardware.
+            nc['numLaneGroups'] = len(v)
+            nc['numLaneGroupsLog2'] = [1, 2, 4].index(len(v))
+            nc['numLanes'] = len(vc)
+            nc['numLanesLog2'] = [1, 2, 4, 8].index(len(vc))
+            nc['numLanesPerGroup'] = len(v[0])
+            nc['memLaneRevIndex'] = len(v[0]) - 1
+            nc['multipliers'] = vc
+            
+            # Configure the compiler.
+            if len(v) > 1:
+                nc['compiler-genbin'] = True
+                nc['compiler-width'] = 8
+                nc['compiler-borrow'] = '1.0.3.2.5.4.7.6'
+                nc['compiler-config'] = v[0] * (8 // len(v[0]))
+            else:
+                nc['compiler-genbin'] = False
+                nc['compiler-width'] = len(vc)
+                nc['compiler-borrow'] = {2: '1.0', 4: '1.0.3.2', 8: '1.0.3.2.5.4.7.6'}[len(vc)]
+                nc['compiler-config'] = vc
+            nc['compiler-multCount'] = nc['compiler-config'].count('1')
+
         elif k == 'STOPBIT':
             if v not in ['2', '4', '8']:
                 print('Error: stop bit config must be 2, 4, or 8 on line %d.' % n)
                 errors = True
                 continue
-            nc['stopbit'] = int(v)
-            nc['bundlealignlog2'] = int.bit_length(int(v)) - 1
+            nc['bundleAlignLog2'] = int.bit_length(int(v)) - 1
+            nc['compiler-bundleAlign'] = int(v)
+            
+        elif k == 'CONTEXTS':
+            if v not in ['1', '2', '4']:
+                print('Error: the number of contexts must be 1, 2, or 4 on line %d.' % n)
+                errors = True
+                continue
+            nc['numContexts'] = int(v)
+            nc['numContextsLog2'] = ['1', '2', '4'].index(v)
         else:
             raise RuntimeError('No parser for key %s', k)
-    if 'icachelog2' in nc and 'numlaneslog2' in nc:
-        nc['icachelog2'] -= nc['numlaneslog2'] + 2
-        if nc['icachelog2'] < 1:
+    if 'icacheLog2' in nc and 'numLanesLog2' in nc:
+        nc['icacheLog2'] -= nc['numLaneGroupsLog2'] + nc['numLanesLog2'] + 2
+        if nc['icacheLog2'] < 1:
             print('Error: instruction cache too small on line %d.' % c['ICACHE'][0])
             errors = True
             continue
-    if 'dcachelog2' in nc:
-        nc['dcachelog2'] -= 2
-        if nc['dcachelog2'] < 1:
+    if 'dcacheLog2' in nc:
+        nc['dcacheLog2'] -= nc['numLaneGroupsLog2'] + 2
+        if nc['dcacheLog2'] < 1:
             print('Error: data cache too small on line %d.' % c['DCACHE'][0])
             errors = True
             continue
-    if 'bundlealignlog2' in nc and 'numlaneslog2' in nc:
-        if nc['bundlealignlog2'] > nc['numlaneslog2']:
-            print('Error: stop bit config is greater than issue width for core on line %d.' % linenr)
-            errors = True
-            continue
+    if 'bundleAlignLog2' in nc and 'numLanesLog2' in nc:
+        if nc['bundleAlignLog2'] > nc['numLanesLog2']:
+            nc['bundleAlignLog2'] = nc['numLanesLog2']
+            nc['compiler-bundleAlign'] = 2**nc['numLanesLog2']
+            print('Warning: stop bit config is greater than issue width for core on line %d.' % linenr)
+    
+    if not errors:
+        # Figure out the lane configuration for the compiler:
+        #  - Bit 0: ALU
+        laneconfig = int('1' * nc['compiler-width'], 16)
+        #  - Bit 1: Multiplier
+        laneconfig |= int(nc['compiler-config'], 16) << 1
+        #  - Bit 2: Memory
+        mem = ['0'] * nc['numLanesPerGroup']
+        mem[-(nc['memLaneRevIndex'] + 1)] = '4'
+        mem = ''.join(mem)
+        mem *= nc['compiler-width'] // nc['numLanesPerGroup']
+        laneconfig |= int(mem, 16)
+        #  - Bit 3: Branch
+        br = ['0'] * nc['compiler-width']
+        for i in range(0, nc['compiler-width'], nc['compiler-bundleAlign']):
+            br[i + nc['compiler-bundleAlign'] - 1] = '8'
+        for i in range(0, nc['compiler-width'], nc['numLanesPerGroup']):
+            br[i + nc['numLanesPerGroup'] - 1] = '8'
+        laneconfig |= int(''.join(br), 16)
+        # And store it as a string.
+        nc['compiler-config'] = '%0*X' % (nc['compiler-width'], laneconfig)
+    
     c.clear()
     c.update(nc)
 if errors:
     sys.exit(1)
 
+# Determine which benchmarks this group needs to run.
+benchmarks_file = '/home/user/workspace/assignment2/benchmarks'
+if not os.path.isfile(benchmarks_file):
+    print('Warning: benchmarks file does not exist. Cannot properly initialize src directory.')
+    print('  (/home/user/workspace/assignment2/benchmarks)')
+    benchmarks = []
+else:
+    with open(benchmarks_file, 'r') as f:
+        benchmarks = [x.strip() for x in f.readlines()[2:]]
+
 # Query overriding things.
-if os.path.isdir('sim') or os.path.isdir('compile') or os.path.isdir('fpga'):
-    print('Warning! Reconfiguring will delete all files in the compile and fpga')
-    print('directories. That includes any synthesis data/bitstreams that you may')
-    print('have built in this directory. Are you sure you want to delete these')
-    print('things? [y/n]')
+if os.path.isdir('data'):
+    print('Warning! Reconfiguring will delete all files in the data and result directories!')
+    print('That includes any synthesis data/bitstreams that you may have built here. Are')
+    print('you sure you want to delete these things? [y/n]')
     if input() != 'y':
         sys.exit(1)
 
-# Clean up, then rebuild directory structure.
-for d in ['compile', 'fpga']:
-    rm('-r', d)
-    mkdir('-p', d)
+# Clean up, then rebuild data directory structure.
+rm('-r', 'data')
+rm('-r', 'results')
+mkdir('-p', 'data/compile')
+mkdir('-p', 'data/fpga')
+mkdir('-p', 'results')
+
+# If the source directory does not exist yet, construct it.
+if not os.path.isdir('src'):
+    mkdir('-p', 'src')
+    
+    # Copy the benchmark sources into the src tree.
+    benchmarks_old = benchmarks
+    benchmarks = []
+    for b in benchmarks_old:
+        filename = '/home/user/workspace/assignment2/powerstone/%s.c' % b
+        if not os.path.isfile(filename):
+            print('Warning: cannot find source for benchmark "%s". Removing benchmark from list.', b)
+            print('  (%s)', filename)
+        else:
+            cp('-p', filename, 'src')
+            benchmarks.append(b)
+    
+    
+
+
+sys.exit(0)
+###################################################################################################
+###################################################################################################
+###################################################################################################
+###################################################################################################
+
 
 # Generate the compile directory and the machine configuration files.
 mm_template = """
@@ -177,23 +262,23 @@ RES: CopySrc.0      1
 RES: CopyDst.0      1
 REG: $r0            63
 REG: $b0            8
-DEL: AluR.0         {lat0}
-DEL: Alu.0          {lat0}
-DEL: CmpBr.0        {lat0}
-DEL: CmpGr.0        {lat0}
-DEL: Select.0       {lat0}
-DEL: Multiply.0     {lat1}
-DEL: Load.0         {lat1}
-DEL: LoadLr.0       {lat1}
+DEL: AluR.0         0
+DEL: Alu.0          0
+DEL: CmpBr.0        0
+DEL: CmpGr.0        0
+DEL: Select.0       0
+DEL: Multiply.0     1
+DEL: Load.0         1
+DEL: LoadLr.0       1
 DEL: Store.0        0
 DEL: Pft.0          0
-DEL: CpGrBr.0       {lat0}
-DEL: CpBrGr.0       {lat0}
-DEL: CpGrLr.0       {lat0}
-DEL: CpLrGr.0       {lat0}
+DEL: CpGrBr.0       0
+DEL: CpBrGr.0       0
+DEL: CpGrLr.0       0
+DEL: CpLrGr.0       0
 DEL: Spill.0        0
-DEL: Restore.0      {lat1}
-DEL: RestoreLr.0    {lat1}
+DEL: Restore.0      1
+DEL: RestoreLr.0    1
 CFG: Quit           0
 CFG: Warn           0
 CFG: Debug          0
@@ -202,10 +287,8 @@ for i, c in enumerate(cores):
     mkdir('-p', 'compile/core%d' % i)
     with open('compile/core%d/config.mm' % i, 'w') as f:
         f.write(mm_template.format(
-            issuewidth = c['issuewidth'],
-            multipliers = c['multiplier_count'],
-            lat0 = 0 if nc['forwarding'] else 3,
-            lat1 = 1 if nc['forwarding'] else 3
+            issuewidth = c['compiler-width'],
+            multipliers = c['compiler-multCount']
         ))
 
 # Generate the main C files and linker scripts.
@@ -272,8 +355,7 @@ for i, c in enumerate(cores):
     with open('compile/core%d/main.c' % i, 'w') as f:
         f.write('#include "rvex.h"\n')
         f.write('#include "record.h"\n')
-        for b in c['benchmarks']:
-            f.write('void %s_main(void);\n' % b)
+        f.write('void %s_main(void);\n')
         f.write('volatile char *record_ptr = (volatile char*)0x%08X;\n' % (0x1F000000 + 0x00100000*i))
         f.write('int main(void) {\n')
         f.write('    log_perfcount("*** After init ***");\n')
@@ -287,10 +369,10 @@ for i, c in enumerate(cores):
     with open('compile/core%d/Makefile' % i, 'w') as f:
         f.write('\n')
         f.write('TARGETS      = _start main record common bcopy floatlib %s\n' % ' '.join([b + '-sub' for b in c['benchmarks']]))
-        f.write('ISSUE_WIDTH  = %s\n' % c['issuewidth'])
-        f.write('BORROW       = %s\n' % c['borrow'])
-        f.write('LANECONFIG   = %s\n' % c['laneconfig'])
-        f.write('BUNDLE_ALIGN = %s\n' % c['stopbit'])
+        f.write('ISSUE_WIDTH  = %s\n' % c['compilerissuewidth'])
+        f.write('BORROW       = %s\n' % c['compilerborrow'])
+        f.write('LANECONFIG   = %s\n' % c['compilerlaneconfig'])
+        f.write('BUNDLE_ALIGN = %s\n' % c['compilerbundlealign'])
         f.write('CFLAGS       = -O3\n')
         f.write('\n')
         f.write('include /home/user/workspace/assignment2/utils/compile-core.makefile\n')
@@ -337,7 +419,7 @@ config_vhd_core = """
         multiplierLanes       => 2#{multiplierLanes}#,
         memLaneRevIndex       => {memLaneRevIndex},
         numBreakpoints        => 0,
-        forwarding            => {forwarding},
+        forwarding            => 1,
         limmhFromPreviousPair => 0,
         resetVectors          => (others => X"{reset:08X}"),
         traceEnable           => 0,
@@ -384,8 +466,7 @@ with open('fpga/config.vhd', 'w') as f:
             numLanesLog2        = c['numlaneslog2'],
             bundleAlignLog2     = c['bundlealignlog2'],
             multiplierLanes     = c['multipliers'],
-            memLaneRevIndex     = c['issuewidth'] - 1,
-            forwarding          = c['forwarding'],
+            memLaneRevIndex     = c['memlanerevindex'],
             reset               = i * 32*1024*1024,
             instrCacheLinesLog2 = c['icachelog2'],
             dataCacheLinesLog2  = c['dcachelog2']
