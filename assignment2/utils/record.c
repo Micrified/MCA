@@ -3,8 +3,8 @@
 #include "rvex.h"
 
 // This variable is declared in main.c. The initial value should be
-// 0x1F000000 + core_index * 0x100000. The boardserver script will return any
-// data written here up to the first 0 encountered.
+// 0x1F000000 + global_context_index * 0x100000. The boardserver script will
+// return any data written here up to the first 0 encountered.
 extern volatile char *record_ptr;
 
 // This is the UART data register. For the UART to work properly in hardware

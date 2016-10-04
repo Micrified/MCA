@@ -1,7 +1,7 @@
 
 RVEX_REWRITE = /home/user/workspace/rvex-rewrite
 SCRIPTS_DIR = /home/user/workspace/tools/scripts
-RESULTS_DIR = ../results
+RESULTS_DIR = ../../results
 PLATFORM = $(RVEX_REWRITE)/platform/ml605-grlib-bare
 ARCHIVE_TOOLS = $(RVEX_REWRITE)/versions/tools
 ARCHIVE_DIR = work/archive

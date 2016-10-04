@@ -9,6 +9,10 @@ ln = local['ln']['-s']
 cp = local['cp']
 mkdir = local['mkdir']
 
+###############################################################################
+# Parse the platform configuration file.                                      #
+###############################################################################
+
 # Check that the config file exists.
 if not os.path.isfile('configuration.rvex'):
     print('Error: no configuration.rvex was found in the current directory.')
@@ -16,13 +20,24 @@ if not os.path.isfile('configuration.rvex'):
 
 # Parse the configuration file.
 errors = False
-keys = set(['CONFIG', 'CONTEXTS', 'ICACHE', 'DCACHE', 'STOPBIT'])
+keys = set(['CONFIG', 'ICACHE', 'DCACHE', 'STOPBIT'])
 
 with open('configuration.rvex', 'r') as f:
     lines = f.readlines()
 lines = [(n+1, l.split('#')[0].strip()) for n, l in enumerate(lines)]
 lines = [(n, l) for n, l in lines if l]
 cores = []
+
+# Instruction/data memory regions. Length is the amount allocated per core.
+mem_start  = 0x00000000
+mem_length = 0x02000000
+mem_end    = 0x1F000000
+
+# Log memory regions. Length is the amount allocated per core.
+log_start  = 0x1F000000
+log_length = 0x00100000
+log_end    = 0x20000000
+
 for n, l in lines:
     if l == '[core]':
         cores.append({'linenr': n})
@@ -113,11 +128,13 @@ for c in cores:
                     break
             
             # Configure the hardware.
-            nc['numLaneGroups'] = len(v)
-            nc['numLaneGroupsLog2'] = [1, 2, 4].index(len(v))
             nc['numLanes'] = len(vc)
             nc['numLanesLog2'] = [1, 2, 4, 8].index(len(vc))
             nc['numLanesPerGroup'] = len(v[0])
+            nc['numLaneGroups'] = len(v)
+            nc['numLaneGroupsLog2'] = [1, 2, 4].index(len(v))
+            nc['numContexts'] = len(v)
+            nc['numContextsLog2'] = [1, 2, 4].index(len(v))
             nc['memLaneRevIndex'] = len(v[0]) - 1
             nc['multipliers'] = vc
             
@@ -125,12 +142,10 @@ for c in cores:
             if len(v) > 1:
                 nc['compiler-genbin'] = True
                 nc['compiler-width'] = 8
-                nc['compiler-borrow'] = '1.0.3.2.5.4.7.6'
                 nc['compiler-config'] = v[0] * (8 // len(v[0]))
             else:
                 nc['compiler-genbin'] = False
                 nc['compiler-width'] = len(vc)
-                nc['compiler-borrow'] = {2: '1.0', 4: '1.0.3.2', 8: '1.0.3.2.5.4.7.6'}[len(vc)]
                 nc['compiler-config'] = vc
             nc['compiler-multCount'] = nc['compiler-config'].count('1')
 
@@ -142,13 +157,6 @@ for c in cores:
             nc['bundleAlignLog2'] = int.bit_length(int(v)) - 1
             nc['compiler-bundleAlign'] = int(v)
             
-        elif k == 'CONTEXTS':
-            if v not in ['1', '2', '4']:
-                print('Error: the number of contexts must be 1, 2, or 4 on line %d.' % n)
-                errors = True
-                continue
-            nc['numContexts'] = int(v)
-            nc['numContextsLog2'] = ['1', '2', '4'].index(v)
         else:
             raise RuntimeError('No parser for key %s', k)
     if 'icacheLog2' in nc and 'numLanesLog2' in nc:
@@ -168,6 +176,33 @@ for c in cores:
             nc['bundleAlignLog2'] = nc['numLanesLog2']
             nc['compiler-bundleAlign'] = 2**nc['numLanesLog2']
             print('Warning: stop bit config is greater than issue width for core on line %d.' % linenr)
+    if 'bundleAlignLog2' in nc and 'numLanesLog2' in nc and 'compiler-width' in nc:
+        limmprev = nc['bundleAlignLog2'] >= nc['numLanesLog2']
+        if nc['compiler-width'] == 2:
+            limmprev = False # No need for limmh-prev logic in a 2-way core.
+        nc['limmhFromPreviousPair'] = limmprev
+        if limmprev:
+            nc['compiler-borrow'] = {4: '1.0.3,0.2,1', 8: '1.0.3,0.2,1.5,2.4,3.7,4.6,5'}[nc['compiler-width']]
+        else:
+            nc['compiler-borrow'] = {2: '1.0', 4: '1.0.3.2', 8: '1.0.3.2.5.4.7.6'}[nc['compiler-width']]
+    if 'numContextsLog2' in nc:
+        resets = []
+        logs = []
+        for i in range(nc['numContexts']):
+            if mem_start + mem_length >= mem_end:
+                print('Error: too many cores/contexts; out of memory.')
+                errors = True
+            if log_start + log_length >= log_end:
+                print('Error: too many cores/contexts; out of memory.')
+                errors = True
+            resets.append(mem_start)
+            logs.append(log_start)
+            mem_start += mem_length
+            log_start += log_length
+        nc['resetVectors'] = resets
+        nc['memSize'] = mem_length
+        nc['logRegions'] = logs
+        nc['logSize'] = log_length
     
     if not errors:
         # Figure out the lane configuration for the compiler:
@@ -206,20 +241,44 @@ else:
     with open(benchmarks_file, 'r') as f:
         benchmarks = [x.strip() for x in f.readlines()[2:]]
 
-# Query overriding things.
-if os.path.isdir('data'):
-    print('Warning! Reconfiguring will delete all files in the data and result directories!')
+
+###############################################################################
+# Ask for overwriting existing directories. There should not be any errors    #
+# due to user config after this point.                                        #
+###############################################################################
+
+# Query overriding data and results.
+if os.path.isdir('data') or os.path.isdir('results'):
+    print('Warning! Reconfiguring will delete all files in the data and results directories!')
     print('That includes any synthesis data/bitstreams that you may have built here. Are')
     print('you sure you want to delete these things? [y/n]')
     if input() != 'y':
-        sys.exit(1)
+        sys.exit(0)
 
-# Clean up, then rebuild data directory structure.
+# Query overriding the source directory.
+if os.path.isdir('src'):
+    print('It looks like you already have a src directory. Would you like to keep your')
+    print('current sources to edit them manually, or would you like to generate new source')
+    print('files?')
+    print('  Option 1: keep current files.')
+    print('  Option 2: generate new files (current sources are permanently deleted).')
+    print('  Option 3: cancel operation.')
+    print('Enter 1, 2 or 3.')
+    v = input()
+    if v == '2':
+        rm('-r', 'src')
+    elif v != '1':
+        sys.exit(0)
+
+# Remove the current data/results directories.
 rm('-r', 'data')
 rm('-r', 'results')
-mkdir('-p', 'data/compile')
-mkdir('-p', 'data/fpga')
 mkdir('-p', 'results')
+
+
+###############################################################################
+# Generate the src directory.                                                 #
+###############################################################################
 
 # If the source directory does not exist yet, construct it.
 if not os.path.isdir('src'):
@@ -237,7 +296,248 @@ if not os.path.isdir('src'):
             cp('-p', filename, 'src')
             benchmarks.append(b)
     
+    # Generate the benchmark entry point header file.
+    fname = 'src/benchmarks.h'
+    contents = []
+    contents.append('')
+    contents.append('#ifndef _BENCHMARKS_H_')
+    contents.append('#define _BENCHMARKS_H_')
+    contents.append('')
+    if not benchmarks:
+        contents.append('// Benchmark entry points have the prototype int main_<name>(void).')
+        contents.append('// Add the declarations for your benchmarks here.')
+        contents.append('')
+    else:
+        for b in benchmarks:
+            contents.append('// Runs the %s benchmark.' % b)
+            contents.append('int main_%s(void);' % b)
+            contents.append('')
+    first_core = False
+    contents.append('#endif')
+    contents.append('')
+    with open(fname, 'w') as f:
+        f.write('\n'.join(contents))
     
+    # Generate the entry point C file for each core.
+    first_core = True
+    for ci, c in enumerate(cores):
+        for i in range(c['numContexts']):
+            if c['numContexts'] > 1:
+                fname = 'src/main-core%d-ctxt%d.c' % (ci, i)
+            else:
+                fname = 'src/main-core%d.c' % ci
+            contents = []
+            contents.append('')
+            contents.append('// Declarations for the benchmark main() functions.')
+            contents.append('#include "benchmarks.h"')
+            contents.append('')
+            contents.append('// Debug output functions (puts, etc.; NO printf).')
+            contents.append('#include <record.h>')
+            contents.append('')
+            contents.append('// Core control register definitions.')
+            contents.append('#include <rvex.h>')
+            contents.append('')
+            contents.append('// This variable is used by the debug message recorder. It must be initialized')
+            contents.append('// to 0x1F000000 + global_context_index * 0x100000.')
+            contents.append('volatile char *record_ptr = 0x%08X;' % c['logRegions'][i])
+            contents.append('')
+            contents.append('int main(void) {')
+            contents.append('    ')
+            if i != 0:
+                contents.append('    // NOTE: after reset, this context is not assigned any computational')
+                contents.append('    // resources. So any code here will not run automatically! To use this')
+                contents.append('    // context, you need to give a reconfiguration command in context 0 of')
+                contents.append('    // this core. Refer to r-VEX.pdf.')
+                contents.append('    ')
+            if first_core:
+                if not benchmarks:
+                    contents.append('    // Insert your code here.')
+                    contents.append('    ')
+                else:
+                    contents.append('    // Log the performance counters for debugging purposes. This times the C')
+                    contents.append('    // runtime initialization code. Note that the logging takes time as well;')
+                    contents.append('    // you might want to remove them for your final measurements. The server')
+                    contents.append('    // and simulation will always give you a total cycle count.')
+                    contents.append('    log_perfcount();')
+                    contents.append('    ')
+                    for b in benchmarks:
+                        contents.append('    // Run the %s benchmark and log performance.' % b)
+                        contents.append('    main_%s();' % b)
+                        contents.append('    log_perfcount();')
+                        contents.append('    ')
+                first_core = False
+            else:
+                contents.append('    // This context/core currently does not do anything. You should insert your own')
+                contents.append('    // code here by moving benchmarks from core 0/context 0.')
+                contents.append('    ')
+            contents.append('}')
+            contents.append('')
+            with open(fname, 'w') as f:
+                f.write('\n'.join(contents))
+
+    # Generate the compilation configuration file.
+    fname = 'src/config.compile'
+    contents = []
+    contents.append('')
+    contents.append('# This file specifies which non-library sources to compile for which')
+    contents.append('# core/context, and using which compiler flags.')
+    contents.append('')
+    first_core = True
+    for ci, c in enumerate(cores):
+        for i in range(c['numContexts']):
+            contents.append('#'+'-'*78)
+            s = '[core%d.%d]' % (ci, i)
+            if c['numContexts'] > 1:
+                s += ' # Configuration for core %d, hardware context %d.' % (ci, i)
+            else:
+                s += ' # Configuration for core %d.' % ci
+            contents.append(s)
+            contents.append('#'+'-'*78)
+            contents.append('')
+            contents.append('# Compile the entry point file.')
+            if c['numContexts'] > 1:
+                contents.append('%-25s -O3' % ('main-core%d-ctxt%d' % (ci, i)))
+            else:
+                contents.append('%-25s -O3' % ('main-core%d' % ci))
+            contents.append('')
+            if first_core:
+                if benchmarks:
+                    contents.append('# Compile the benchmarks. The -sub parts tell the compiler to add the')
+                    contents.append('# benchmark name as a suffix to all global functions andvariables, in order')
+                    contents.append('# to make them unique. For instance, the int main(void) function in the')
+                    contents.append('# %s.c file can be called using main_%s().' % (benchmarks[0], benchmarks[0]))
+                    for b in benchmarks:
+                        contents.append('%-25s -O3' % ('%s-sub' % b))
+                    contents.append('')
+                first_core = False
+            contents.append('# Compile the library sources (floating point functions, debugging, etc.) with')
+            contents.append('# -O3 to optimize them.')
+            contents.append('%-25s -O3' % 'OTHERS')
+            contents.append('')
+    contents.append('')
+    with open(fname, 'w') as f:
+        f.write('\n'.join(contents))
+
+
+###############################################################################
+# Generate the data/compile directory.                                        #
+###############################################################################
+
+# Create the directory.
+mkdir('-p', 'data/compile')
+
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
+
+###############################################################################
+# Generate the data/fpga directory.                                           #
+###############################################################################
+
+# Create the directory.
+mkdir('-p', 'data/fpga')
+
+# Link the FPGA makefile.
+ln('/home/user/workspace/assignment2/utils/fpga.makefile', 'data/fpga/Makefile')
+
+# Generate the grlib config.vhd file.
+fname = 'data/fpga/config.vhd'
+contents = []
+contents.append('')
+contents.append('library techmap;')
+contents.append('use techmap.gencomp.all;')
+contents.append('')
+contents.append('library ieee;')
+contents.append('use ieee.std_logic_1164.all;')
+contents.append('')
+contents.append('library rvex;')
+contents.append('use rvex.common_pkg.all;')
+contents.append('use rvex.core_pkg.all;')
+contents.append('use rvex.cache_pkg.all;')
+contents.append('use rvex.rvsys_grlib_pkg.all;')
+contents.append('')
+contents.append('package config is')
+contents.append('  -- Technology and synthesis options.')
+contents.append('  constant CFG_FABTECH : integer := virtex6;')
+contents.append('  constant CFG_MEMTECH : integer := virtex6;')
+contents.append('  constant CFG_PADTECH : integer := virtex6;')
+contents.append('  constant CFG_NOASYNC : integer := 0;')
+contents.append('  constant CFG_SCAN : integer := 0;')
+contents.append('  ')
+contents.append('  -- r-VEX processor core configuration.')
+contents.append('  constant CFG_NRVEX : integer := %d;' % len(cores))
+contents.append('  constant CFG_RVEX_CFG : rvex_grlib_generic_config_array(0 to CFG_NRVEX-1) := (')
+contents.append('    ')
+for ci, c in enumerate(cores):
+    contents.append('    -- Core %d configuration.' % ci)
+    contents.append('    %d => rvex_grlib_cfg(' % ci)
+    contents.append('      core => rvex_cfg(')
+    contents.append('        numLanesLog2          => %d,' % c['numLanesLog2'])
+    contents.append('        numLaneGroupsLog2     => %d,' % c['numLaneGroupsLog2'])
+    contents.append('        numContextsLog2       => %d,' % c['numContextsLog2'])
+    contents.append('        bundleAlignLog2       => %d,' % c['bundleAlignLog2'])
+    contents.append('        multiplierLanes       => 2#%s#,' % c['multipliers'])
+    contents.append('        memLaneRevIndex       => %d,' % c['memLaneRevIndex'])
+    contents.append('        numBreakpoints        => 0,')
+    contents.append('        forwarding            => 1,')
+    contents.append('        limmhFromPreviousPair => %d,' % (1 if c['limmhFromPreviousPair'] else 0))
+    contents.append('        resetVectors          => (')
+    for i in range(c['numContexts']):
+        contents.append('          %d => X"%08X",' % (i, c['resetVectors'][i]))
+    contents.append('          others => X"00000000"')
+    contents.append('        ),')
+    contents.append('        traceEnable           => 0,')
+    contents.append('        perfCountSize         => 4,')
+    contents.append('        cachePerfCountEnable  => 1')
+    contents.append('      ),')
+    contents.append('      core_valid => true,')
+    contents.append('      cache => cache_cfg(')
+    contents.append('        instrCacheLinesLog2   => %d,' % c['icacheLog2'])
+    contents.append('        dataCacheLinesLog2    => %d'  % c['dcacheLog2'])
+    contents.append('      ),')
+    contents.append('      cache_valid => true')
+    if ci == len(cores) - 1:
+        contents.append('    )')
+    else:
+        contents.append('    ),')
+    contents.append('    ')
+contents.append('  );')
+contents.append('  ')
+contents.append('  -- Total number of processors.')
+contents.append('  constant CFG_NLG : integer := rvex_grlib_num_lane_groups(CFG_RVEX_CFG);')
+contents.append('  constant CFG_NCTXT : integer := rvex_grlib_num_contexts(CFG_RVEX_CFG);')
+contents.append('  ')
+contents.append('  -- AMBA settings.')
+contents.append('  constant CFG_FPNPEN : integer := 0;')
+contents.append('  constant CFG_AHBIO : integer := 16#FFF#;')
+contents.append('  constant CFG_APBADDR : integer := 16#800#;')
+contents.append('  constant CFG_AHB_MON : integer := 0;')
+contents.append('  constant CFG_AHB_MONERR : integer := 0;')
+contents.append('  constant CFG_AHB_MONWAR : integer := 0;')
+contents.append('  constant CFG_AHB_DTRACE : integer := 0;')
+contents.append('  ')
+contents.append('  -- Xilinx MIG DDR2 controller.')
+contents.append('  constant CFG_MIG_DDR2 : integer := 1;')
+contents.append('  --constant CFG_MIG_CLK4 : integer := 30; -- 40 MHz     (5.0ns sync with 200MHz DDR)')
+contents.append('  --constant CFG_MIG_CLK4 : integer := 32; -- 37.5 MHz   (1.6ns sync with 200MHz DDR)')
+contents.append('  --constant CFG_MIG_CLK4 : integer := 33; -- 36.36 MHz  (2.5ns sync with 200MHz DDR)')
+contents.append('  --constant CFG_MIG_CLK4 : integer := 36; -- 33.33 MHz  (5.0ns sync with 200MHz DDR)')
+contents.append('  --constant CFG_MIG_CLK4 : integer := 40; -- 30 MHz     (1.6ns sync with 200MHz DDR)')
+contents.append('    constant CFG_MIG_CLK4 : integer := 60; -- 20 MHz     (5.0ns sync with 200MHz DDR)')
+contents.append('  ')
+contents.append('end;')
+contents.append('')
+with open(fname, 'w') as f:
+    f.write('\n'.join(contents))
+
+# Generate the modelsim .do script.
+fname = 'data/fpga/phy.do'
+contents = []
+contents.append('')
+for ci in range(len(cores)):
+    contents.append('add wave -label "Core %d" -expand sim:/testbench/d3/rvsys_gen(%d)/rvsys_inst/rvex_block/rvex_inst/rv2sim' % (ci, ci))
+contents.append('')
+with open(fname, 'w') as f:
+    f.write('\n'.join(contents))
 
 
 sys.exit(0)
@@ -245,6 +545,10 @@ sys.exit(0)
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
+
+# Clean up old files.
+mkdir('-p', 'data/compile')
+mkdir('-p', 'data/fpga')
 
 
 # Generate the compile directory and the machine configuration files.
@@ -379,106 +683,4 @@ for i, c in enumerate(cores):
         f.write('\n')
 
 ln('/home/user/workspace/assignment2/utils/compile.makefile', 'compile/Makefile')
-
-# Generate the grlib config.vhd file.
-config_vhd_head = """
-library techmap;
-use techmap.gencomp.all;
-
-library ieee;
-use ieee.std_logic_1164.all;
-
-library rvex;
-use rvex.common_pkg.all;
-use rvex.core_pkg.all;
-use rvex.cache_pkg.all;
-use rvex.rvsys_grlib_pkg.all;
-
-package config is
--- Technology and synthesis options
-  constant CFG_FABTECH : integer := virtex6;
-  constant CFG_MEMTECH : integer := virtex6;
-  constant CFG_PADTECH : integer := virtex6;
-  constant CFG_NOASYNC : integer := 0;
-  constant CFG_SCAN : integer := 0;
--- LEON3 processor core
-  --constant CFG_DISAS : integer := 0 + 0;
-  --constant CFG_PCLOW : integer := 2;
--- r-VEX processor core
-  constant CFG_NRVEX : integer := {num_cores};
-  constant CFG_RVEX_CFG : rvex_grlib_generic_config_array(0 to CFG_NRVEX-1) := (
-"""
-config_vhd_core = """    
-    -- Core {index} configuration
-    {index} => rvex_grlib_cfg(
-      core => rvex_cfg(
-        numLanesLog2          => {numLanesLog2},
-        numLaneGroupsLog2     => 0,
-        numContextsLog2       => 0,
-        bundleAlignLog2       => {bundleAlignLog2},
-        multiplierLanes       => 2#{multiplierLanes}#,
-        memLaneRevIndex       => {memLaneRevIndex},
-        numBreakpoints        => 0,
-        forwarding            => 1,
-        limmhFromPreviousPair => 0,
-        resetVectors          => (others => X"{reset:08X}"),
-        traceEnable           => 0,
-        perfCountSize         => 4,
-        cachePerfCountEnable  => 1
-      ), core_valid => true,
-    
-      -- Cache configuration
-      cache => cache_cfg(
-        instrCacheLinesLog2   => {instrCacheLinesLog2},
-        dataCacheLinesLog2    => {dataCacheLinesLog2}
-      ), cache_valid => true)"""
-config_vhd_foot = """
-  
-  );
--- Total number of processors
-  constant CFG_NLG : integer := rvex_grlib_num_lane_groups(CFG_RVEX_CFG);
-  constant CFG_NCTXT : integer := rvex_grlib_num_contexts(CFG_RVEX_CFG);
--- AMBA settings
-  constant CFG_FPNPEN : integer := 0;
-  constant CFG_AHBIO : integer := 16#FFF#;
-  constant CFG_APBADDR : integer := 16#800#;
-  constant CFG_AHB_MON : integer := 0;
-  constant CFG_AHB_MONERR : integer := 0;
-  constant CFG_AHB_MONWAR : integer := 0;
-  constant CFG_AHB_DTRACE : integer := 0;
--- Xilinx MIG DDR2 controller
-  constant CFG_MIG_DDR2 : integer := 1;
-  --constant CFG_MIG_CLK4 : integer := 30; -- 40 MHz     (5.0ns sync with 200MHz DDR)
-  --constant CFG_MIG_CLK4 : integer := 32; -- 37.5 MHz   (1.6ns sync with 200MHz DDR)
-  --constant CFG_MIG_CLK4 : integer := 33; -- 36.36 MHz  (2.5ns sync with 200MHz DDR)
-  --constant CFG_MIG_CLK4 : integer := 36; -- 33.33 MHz  (5.0ns sync with 200MHz DDR)
-  --constant CFG_MIG_CLK4 : integer := 40; -- 30 MHz     (1.6ns sync with 200MHz DDR)
-    constant CFG_MIG_CLK4 : integer := 60; -- 20 MHz     (5.0ns sync with 200MHz DDR)
-
-end;
-"""
-with open('fpga/config.vhd', 'w') as f:
-    f.write(config_vhd_head.format(num_cores=len(cores)))
-    cs = []
-    for i, c in enumerate(cores):
-        cs.append(config_vhd_core.format(
-            index               = i,
-            numLanesLog2        = c['numlaneslog2'],
-            bundleAlignLog2     = c['bundlealignlog2'],
-            multiplierLanes     = c['multipliers'],
-            memLaneRevIndex     = c['memlanerevindex'],
-            reset               = i * 32*1024*1024,
-            instrCacheLinesLog2 = c['icachelog2'],
-            dataCacheLinesLog2  = c['dcachelog2']
-        ))
-    f.write(',\n'.join(cs))
-    f.write(config_vhd_foot)
-ln('/home/user/workspace/assignment2/utils/fpga.makefile', 'fpga/Makefile')
-
-# Generate the modelsim .do script.
-with open('fpga/phy.do', 'w') as f:
-    for i, c in enumerate(cores):
-        f.write('add wave -label "Core {0}" -expand sim:/testbench/d3/rvsys_gen({0})/rvsys_inst/rvex_block/rvex_inst/rv2sim\n'.format(i))
-
-
 
