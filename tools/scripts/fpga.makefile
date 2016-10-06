@@ -11,7 +11,7 @@ CHAIN = cd work && $(MAKE) GRLIB=$(GRLIB_DIR)/grlib-gpl-1.3.7-b4144
 WITH_ISE = source /home/user/workspace/tools/scripts/sx &&
 WITH_SIM = source /home/user/workspace/tools/scripts/sm &&
 
-OUTPUT_DIR = output
+OUTPUT_DIR = ../output
 OUTPUT_BIT = $(OUTPUT_DIR)/fpga.bit
 OUTPUT_LOG = $(OUTPUT_DIR)/xilinx.log
 OUTPUT_TWR = $(OUTPUT_DIR)/timing.twr
@@ -20,26 +20,8 @@ RAM_SREC = ../compile/ram.srec
 
 BOARDSERVER_DIR = /home/user/boardserver
 
-.PHONY: help
-help:
-	@echo ""
-	@echo "FPGA commands:"
-	@echo ""
-	@echo "make sim   - simulates the FPGA platform with the current source code"
-	@echo "             in modelsim. Generates performance results including cache"
-	@echo "             behavior, though with a simplified memory latency model."
-	@echo ""
-	@echo "make synth - synthesizes the design. Generates area utilization info"
-	@echo "             and allows testing your design on the boardserver."
-	@echo ""
-	@echo "make run   - sends the design to the boardserver to measure performance."
-	@echo "             If you haven't synthesized yet, this will ask you if you"
-	@echo "             want to do that first."
-	@echo ""
-	@echo "make clean - deletes all intermediate and output files. If you get weird"
-	@echo "             errors from the other commands, running this and then"
-	@echo "             trying again is not a bad idea."
-	@echo ""
+.PHONY: all
+all: work
 
 # Call the makefile in the grlib directory to download and patch grlib.
 $(GRLIB_DIR)/grlib-gpl-1.3.7-b4144:
@@ -160,7 +142,6 @@ synth: work archive-manifest
 	# Populate the results directory.
 	mkdir -p $(RESULTS_DIR)
 	python3 $(SCRIPTS_DIR)/gather_synth_results.py work/xilinx.log work/timing.log $(RESULTS_DIR)
-	
 
 # Shorthand for launching ISE.
 .PHONY: ise

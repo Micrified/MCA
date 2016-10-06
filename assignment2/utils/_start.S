@@ -28,12 +28,14 @@ _start::
   c0  add     $r0.23      = $r0.0, _panic_handler
   ISSUE_2
   
-  /* Load hardware context ID. */
-#ifdef XSTSIM
+  /* Initialize $r0.11 with the index of the instance running the same piece */
+  /* of code. For the lab each context always runs its own program, so this */
+  /* always zero. */
+/*#ifdef XSTSIM*/
   c0  add     $r0.11      = $r0.0, $r0.0
-#else
+/*#else
   c0  ldb     $r0.11      = CR_CID_ADDR[$r0.0]
-#endif
+#endif*/
 ;;
   /* Set r0.25 if the BSS size is 0. */
   c0  cmpleu  $r0.25      = $r0.22, $r0.21
@@ -115,141 +117,6 @@ _stop::
   .section .text
   .proc 
 _panic_handler::
-stop
-;;
-  
-  /* Try to write a failure message to stdout: "<context ID>: panic." */
-#ifdef XSTSIM
-  c0  add     $r0.57      = $r0.0, $r0.0
-#else
-  c0  ldb     $r0.57      = CR_CID_ADDR[$r0.0]
-#endif
-  ISSUE_4
-  c0  add     $r0.3       = $r0.0, '\n'
-  c0  call    $l0.0       = putchar
-;;
-  c0  ldb     $r0.58      = CR_TC_ADDR[$r0.0]
-;;
-  c0  ldw     $r0.59      = CR_TP_ADDR[$r0.0]
-;;
-  c0  ldw     $r0.60      = CR_TA_ADDR[$r0.0]
-;;
-  c0  add     $r0.3       = $r0.57, '0'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ':'
-  c0  call    $l0.0       = putchar
-;;
-/*
-  c0  add     $r0.3       = $r0.0, ' '
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'p'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'a'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'n'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'i'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'c'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, '.'
-  c0  call    $l0.0       = putchar
-;;
-*/
-  c0  add     $r0.3       = $r0.0, '\n'
-  c0  call    $l0.0       = putchar
-;;
-  /* Try to write the trap cause and trap cause */
-  c0  add     $r0.3       = $r0.0, 'c'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'a'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'u'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 's'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'e'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ':'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ' '
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, $r0.58
-  c0 call     $l0.0       = putx
-;;
-  c0  add     $r0.3       = $r0.0, '\n'
-  c0  call    $l0.0       = putchar
-;;
-  /* Try to write the trap cause and trap point */
-  c0  add     $r0.3       = $r0.0, 'p'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'o'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'i'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'n'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 't'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ':'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ' '
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, $r0.59
-  c0 call     $l0.0       = putx
-;;
-  c0  add     $r0.3       = $r0.0, '\n'
-  c0  call    $l0.0       = putchar
-;;
-  /* Try to write the trap cause and trap Argument */
-  c0  add     $r0.3       = $r0.0, 'a'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'r'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'g'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 'm'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, 't'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ':'
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, ' '
-  c0  call    $l0.0       = putchar
-;;
-  c0  add     $r0.3       = $r0.0, $r0.60
-  c0 call     $l0.0       = putx
-;;
-  c0  add     $r0.3       = $r0.0, '\n'
-  c0  call    $l0.0       = putchar
-;;
 
   /* Stop this context. */
   c0  stop

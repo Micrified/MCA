@@ -1,17 +1,17 @@
 CORES = $(shell echo core*)
 
 .PHONY: all
-all: reset $(patsubst %,%-append,$(CORES))
-
-.PHONY: reset
-reset:
+all:
 	rm -f ram.srec
-	touch ram.srec
+	echo "S00B00006F75742E73726563C1" > ram.srec
+	$(MAKE) $(patsubst %,%-append,$(CORES))
+	echo "S804000000FB" >> ram.srec
+	rvex-objcopy -I srec -O srec ram.srec ram.srec
 
 .PHONY: core%-append
 core%-append: core%
 	cd $< && $(MAKE) all
-	cat $</out.srec >> ram.srec
+	grep "^S[123]" $</out.srec >> ram.srec
 
 .PHONY: clean
 clean: $(patsubst %,%-clean,$(CORES))

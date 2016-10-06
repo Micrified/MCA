@@ -4,27 +4,39 @@
 .PRECIOUS: %.o %.s %.sv %.S %.c %.elf %.xst.elf %.srec %.disas
 
 # Where the workspace directory is.
-WORKSPACE = /home/user/workspace
+WORKSPACE  = /home/user/workspace
 
 # Where the sources are located.
-SRC_POWERSTONE = $(WORKSPACE)/assignment2/powerstone
-SRC_UTILS      = $(WORKSPACE)/assignment2/utils
-SRC_RVRW       = $(WORKSPACE)/rvex-rewrite/examples/src
+SRC_USER   = ../../../src
+SRC_UTILS  = $(WORKSPACE)/assignment2/utils
+SRC_RVRW   = $(WORKSPACE)/rvex-rewrite/examples/src
+
+# Where the compilation configuration file is.
+CCONFIG    = $(SRC_USER)/config.compile
 
 # Where the tools are located.
 RVRW_TOOLS = $(WORKSPACE)/rvex-rewrite/tools
-CC       = $(RVRW_TOOLS)/vex-3.43/bin/cc
-VEXPARSE = python3 $(RVRW_TOOLS)/vexparse/main.py
-AS       = rvex-as
-LD       = rvex-ld
-OBJDUMP  = rvex-objdump
-OBJCOPY  = rvex-objcopy
+PARSECCFG  = python3 $(WORKSPACE)/tools/scripts/parse_compile_config.py $(CCONFIG) $(CONTEXT_ID)
+CC         = $(RVRW_TOOLS)/vex-3.43/bin/cc
+VEXPARSE   = python3 $(RVRW_TOOLS)/vexparse/main.py
+AS         = rvex-as
+LD         = rvex-ld
+OBJDUMP    = rvex-objdump
+OBJCOPY    = rvex-objcopy
+
+# Objects to compile.
+TARGETS += _start
+TARGETS += common
+TARGETS += bcopy
+TARGETS += floatlib
+TARGETS += record
+TARGETS += $(shell $(PARSECCFG))
 
 # Preprocessor definitions.
 DEFS += ISSUE=$(ISSUE_WIDTH)
 
-# Flags for the VEX compiler.
-CFLAGS += -I$(SRC_POWERSTONE)
+# Common flags for the VEX compiler.
+CFLAGS += -I$(SRC_USER)
 CFLAGS += -I$(SRC_UTILS)
 CFLAGS += -I$(SRC_RVRW)
 CFLAGS += -I$(shell pwd)
@@ -53,33 +65,34 @@ LDFLAGS += -Tconfig.x
 .PHONY: all
 all: out.srec out.disas
 
-# How to symlink sources from powerstone.
-%.c: $(SRC_POWERSTONE)/%.c
-	ln -s $< $@
-
-# How to symlink sources from utils.
-%.c: $(SRC_UTILS)/%.c
-	ln -s $< $@
-%.S: $(SRC_UTILS)/%.S
-	ln -s $< $@
-
 # How to compile C files.
-%.s: %.c
-	$(CC) $(CFLAGS) $(patsubst %,-D%,$(DEFS)) -S $<
+%.s: $(SRC_USER)/%.c $(CCONFIG)
+	$(CC) $(CFLAGS) `$(PARSECCFG) $*` $(patsubst %,-D%,$(DEFS)) -S $<
+	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
+%.s: $(SRC_UTILS)/%.c $(CCONFIG)
+	$(CC) $(CFLAGS) `$(PARSECCFG) $*` $(patsubst %,-D%,$(DEFS)) -S $<
 	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
 
 # How to preprocess hand-written assembly files.
-%.s: %.S
+%.s: $(SRC_USER)/%.S $(CCONFIG)
+	$(CC) $(CFLAGS) $(patsubst %,-D%,$(DEFS)) -E $< > $@
+	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
+%.s: $(SRC_UTILS)/%.S $(CCONFIG)
 	$(CC) $(CFLAGS) $(patsubst %,-D%,$(DEFS)) -E $< > $@
 	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
 
-# How to reschedule assembly files to fix long immediate problems.
+# How to reschedule assembly files as generic binaries.
 %.sv: %.s
 	$(VEXPARSE) $(VPFLAGS) $< -o $@
 
-# How to assemble. To enable vexparse, change the dependency from %.s to %.sv.
+# How to assemble.
+ifeq ($(GENERIC_BINARY), true)
+%.o: %.sv
+	$(AS) $(ASFLAGS) -u $< -o $@
+else
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
+endif
 
 # Each powerstone program has its own main() and sometimes some rather generic
 # global variables. In order to compile multiple powerstone programs into one,

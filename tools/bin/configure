@@ -220,8 +220,6 @@ for c in cores:
         br = ['0'] * nc['compiler-width']
         for i in range(0, nc['compiler-width'], nc['compiler-bundleAlign']):
             br[i + nc['compiler-bundleAlign'] - 1] = '8'
-        for i in range(0, nc['compiler-width'], nc['numLanesPerGroup']):
-            br[i + nc['numLanesPerGroup'] - 1] = '8'
         laneconfig |= int(''.join(br), 16)
         # And store it as a string.
         nc['compiler-config'] = '%0*X' % (nc['compiler-width'], laneconfig)
@@ -266,14 +264,15 @@ if os.path.isdir('src'):
     print('Enter 1, 2 or 3.')
     v = input()
     if v == '2':
-        rm('-r', 'src')
+        rm('-rf', 'src')
     elif v != '1':
         sys.exit(0)
 
 # Remove the current data/results directories.
-rm('-r', 'data')
-rm('-r', 'results')
+rm('-rf', 'data')
+rm('-rf', 'results')
 mkdir('-p', 'results')
+rm('-f', 'Makefile')
 
 
 ###############################################################################
@@ -339,7 +338,7 @@ if not os.path.isdir('src'):
             contents.append('')
             contents.append('// This variable is used by the debug message recorder. It must be initialized')
             contents.append('// to 0x1F000000 + global_context_index * 0x100000.')
-            contents.append('volatile char *record_ptr = 0x%08X;' % c['logRegions'][i])
+            contents.append('volatile char *record_ptr = (volatile char *)0x%08X;' % c['logRegions'][i])
             contents.append('')
             contents.append('int main(void) {')
             contents.append('    ')
@@ -358,12 +357,12 @@ if not os.path.isdir('src'):
                     contents.append('    // runtime initialization code. Note that the logging takes time as well;')
                     contents.append('    // you might want to remove them for your final measurements. The server')
                     contents.append('    // and simulation will always give you a total cycle count.')
-                    contents.append('    log_perfcount();')
+                    contents.append('    log_perfcount("init");')
                     contents.append('    ')
                     for b in benchmarks:
                         contents.append('    // Run the %s benchmark and log performance.' % b)
-                        contents.append('    main_%s();' % b)
-                        contents.append('    log_perfcount();')
+                        contents.append('    %s_main();' % b)
+                        contents.append('    log_perfcount("%s");' % b)
                         contents.append('    ')
                 first_core = False
             else:
@@ -403,7 +402,7 @@ if not os.path.isdir('src'):
             if first_core:
                 if benchmarks:
                     contents.append('# Compile the benchmarks. The -sub parts tell the compiler to add the')
-                    contents.append('# benchmark name as a suffix to all global functions andvariables, in order')
+                    contents.append('# benchmark name as a prefix to all global functions andvariables, in order')
                     contents.append('# to make them unique. For instance, the int main(void) function in the')
                     contents.append('# %s.c file can be called using main_%s().' % (benchmarks[0], benchmarks[0]))
                     for b in benchmarks:
@@ -423,10 +422,141 @@ if not os.path.isdir('src'):
 # Generate the data/compile directory.                                        #
 ###############################################################################
 
-# Create the directory.
-mkdir('-p', 'data/compile')
+# Create the directories.
+for ci, c in enumerate(cores):
+    for i in range(c['numContexts']):
+        mkdir('-p', 'data/compile/core%d.%d' % (ci, i))
 
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# Link the output file merging makefile.
+ln('/home/user/workspace/tools/scripts/compile-merge.makefile', 'data/compile/Makefile')
+
+# Create the per-core makefiles.
+for ci, c in enumerate(cores):
+    for i in range(c['numContexts']):
+        fname = 'data/compile/core%d.%d/Makefile' % (ci, i)
+        contents = []
+        contents.append('')
+        contents.append('CONTEXT_ID     = core%d.%d' % (ci, i))
+        contents.append('GENERIC_BINARY = %s' % ('true' if c['compiler-genbin'] else 'false'))
+        contents.append('ISSUE_WIDTH    = %s' % c['compiler-width'])
+        contents.append('BORROW         = %s' % c['compiler-borrow'])
+        contents.append('LANECONFIG     = %s' % c['compiler-config'])
+        contents.append('BUNDLE_ALIGN   = %s' % c['compiler-bundleAlign'])
+        contents.append('')
+        contents.append('include /home/user/workspace/tools/scripts/compile.makefile')
+        contents.append('')
+        with open(fname, 'w') as f:
+            f.write('\n'.join(contents))
+
+# Create the machine configurations.
+for ci, c in enumerate(cores):
+    for i in range(c['numContexts']):
+        fname = 'data/compile/core%d.%d/config.mm' % (ci, i)
+        contents = []
+        contents.append('')
+        contents.append('RES: IssueWidth     %d' % c['compiler-width'])
+        contents.append('RES: MemLoad        1')
+        contents.append('RES: MemStore       1')
+        contents.append('RES: MemPft         0')
+        contents.append('# ***Clusters***    1')
+        contents.append('RES: IssueWidth.0   %d' % c['compiler-width'])
+        contents.append('RES: Alu.0          %d' % c['compiler-width'])
+        contents.append('RES: Mpy.0          %d' % c['compiler-multCount'])
+        contents.append('RES: Memory.0       1')
+        contents.append('RES: CopySrc.0      1')
+        contents.append('RES: CopyDst.0      1')
+        contents.append('REG: $r0            63')
+        contents.append('REG: $b0            8')
+        contents.append('DEL: AluR.0         0')
+        contents.append('DEL: Alu.0          0')
+        contents.append('DEL: CmpBr.0        0')
+        contents.append('DEL: CmpGr.0        0')
+        contents.append('DEL: Select.0       0')
+        contents.append('DEL: Multiply.0     1')
+        contents.append('DEL: Load.0         1')
+        contents.append('DEL: LoadLr.0       1')
+        contents.append('DEL: Store.0        0')
+        contents.append('DEL: Pft.0          0')
+        contents.append('DEL: CpGrBr.0       0')
+        contents.append('DEL: CpBrGr.0       0')
+        contents.append('DEL: CpGrLr.0       0')
+        contents.append('DEL: CpLrGr.0       0')
+        contents.append('DEL: Spill.0        0')
+        contents.append('DEL: Restore.0      1')
+        contents.append('DEL: RestoreLr.0    1')
+        contents.append('CFG: Quit           0')
+        contents.append('CFG: Warn           0')
+        contents.append('CFG: Debug          0')
+        contents.append('')
+        with open(fname, 'w') as f:
+            f.write('\n'.join(contents))
+
+# Create the linker scripts.
+for ci, c in enumerate(cores):
+    for i in range(c['numContexts']):
+        fname = 'data/compile/core%d.%d/config.x' % (ci, i)
+        contents = []
+        contents.append('')
+        contents.append('OUTPUT_FORMAT("elf32-rvex")')
+        contents.append('OUTPUT_ARCH(rvex)')
+        contents.append('ENTRY(_start)')
+        contents.append('MEMORY')
+        contents.append('{')
+        contents.append('  ram : ORIGIN = 0x%08X, LENGTH = %dM' % (c['resetVectors'][i], c['memSize'] >> 20))
+        contents.append('}')
+        contents.append('SECTIONS')
+        contents.append('{')
+        contents.append('  .text :')
+        contents.append('  {')
+        contents.append('    __TEXT_START = .;')
+        contents.append('    *(.init)')
+        contents.append('    *(.text)')
+        contents.append('    __TEXT_END = .;')
+        contents.append('  } > ram')
+        contents.append('  .data :')
+        contents.append('  {')
+        contents.append('    __DATA_START = .;')
+        contents.append('    *(.rodata*)')
+        contents.append('    *(.data_4) *(.data_2) *(.data_1) *(.data) *(.data.*) *(.gnu.linkonce.d.*)')
+        contents.append('    __DATA_END = .;')
+        contents.append('    . = ALIGN(16);')
+        contents.append('  } > ram')
+        contents.append('  .bss (NOLOAD) :')
+        contents.append('  {')
+        contents.append('    __BSS_START = .;')
+        contents.append('    *(.bss_4) *(.bss_2) *(.bss_1) *(.bss) *(COMMON) *(.bss.*) *(.gnu.linkonce.b.*)')
+        contents.append('    __BSS_END = .;')
+        contents.append('  } > ram')
+        contents.append('  .stack (NOLOAD) :')
+        contents.append('  {')
+        contents.append('    . = ALIGN(4);')
+        contents.append('    . += 0x6000;')
+        contents.append('    __STACK_START = .;')
+        contents.append('  } > ram')
+        contents.append('  .heap (NOLOAD) :')
+        contents.append('  {')
+        contents.append('    . = ALIGN(4);')
+        contents.append('    end = .;')
+        contents.append('    _end = .;')
+        contents.append('    __HEAP_START = .;')
+        contents.append('    . += 0x200000; ')
+        contents.append('    __HEAP_MAX = .;')
+        contents.append('  } > ram')
+        contents.append('  .comment        0 : { *(.comment) }')
+        contents.append('  .debug_aranges  0 : { *(.debug_aranges) }')
+        contents.append('  .debug_pubnames 0 : { *(.debug_pubnames) }')
+        contents.append('  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }')
+        contents.append('  .debug_abbrev   0 : { *(.debug_abbrev) }')
+        contents.append('  .debug_line     0 : { *(.debug_line) }')
+        contents.append('  .debug_frame    0 : { *(.debug_frame) }')
+        contents.append('  .debug_str      0 : { *(.debug_str) }')
+        contents.append('  .debug_loc      0 : { *(.debug_loc) }')
+        contents.append('  .debug_macinfo  0 : { *(.debug_macinfo) }')
+        contents.append('}')
+        contents.append('__DATA_IMAGE_START = LOADADDR(.data);')
+        contents.append('')
+        with open(fname, 'w') as f:
+            f.write('\n'.join(contents))
 
 
 ###############################################################################
@@ -437,7 +567,7 @@ mkdir('-p', 'data/compile')
 mkdir('-p', 'data/fpga')
 
 # Link the FPGA makefile.
-ln('/home/user/workspace/assignment2/utils/fpga.makefile', 'data/fpga/Makefile')
+ln('/home/user/workspace/tools/scripts/fpga.makefile', 'data/fpga/Makefile')
 
 # Generate the grlib config.vhd file.
 fname = 'data/fpga/config.vhd'
@@ -540,147 +670,9 @@ with open(fname, 'w') as f:
     f.write('\n'.join(contents))
 
 
-sys.exit(0)
-###################################################################################################
-###################################################################################################
-###################################################################################################
-###################################################################################################
+###############################################################################
+# Link the toplevel makefile.                                                 #
+###############################################################################
 
-# Clean up old files.
-mkdir('-p', 'data/compile')
-mkdir('-p', 'data/fpga')
-
-
-# Generate the compile directory and the machine configuration files.
-mm_template = """
-RES: IssueWidth     {issuewidth}
-RES: MemLoad        1
-RES: MemStore       1
-RES: MemPft         0
-# ***Clusters***    1
-RES: IssueWidth.0   {issuewidth}
-RES: Alu.0          {issuewidth}
-RES: Mpy.0          {multipliers}
-RES: Memory.0       1
-RES: CopySrc.0      1
-RES: CopyDst.0      1
-REG: $r0            63
-REG: $b0            8
-DEL: AluR.0         0
-DEL: Alu.0          0
-DEL: CmpBr.0        0
-DEL: CmpGr.0        0
-DEL: Select.0       0
-DEL: Multiply.0     1
-DEL: Load.0         1
-DEL: LoadLr.0       1
-DEL: Store.0        0
-DEL: Pft.0          0
-DEL: CpGrBr.0       0
-DEL: CpBrGr.0       0
-DEL: CpGrLr.0       0
-DEL: CpLrGr.0       0
-DEL: Spill.0        0
-DEL: Restore.0      1
-DEL: RestoreLr.0    1
-CFG: Quit           0
-CFG: Warn           0
-CFG: Debug          0
-"""
-for i, c in enumerate(cores):
-    mkdir('-p', 'compile/core%d' % i)
-    with open('compile/core%d/config.mm' % i, 'w') as f:
-        f.write(mm_template.format(
-            issuewidth = c['compiler-width'],
-            multipliers = c['compiler-multCount']
-        ))
-
-# Generate the main C files and linker scripts.
-linkerscript = """
-OUTPUT_FORMAT("elf32-rvex")
-OUTPUT_ARCH(rvex)
-ENTRY(_start)
-MEMORY
-{
-  ram : ORIGIN = 0x%08X, LENGTH = 32M
-}
-SECTIONS
-{
-  .text :
-  {
-    __TEXT_START = .;
-    *(.init)
-    *(.text)
-    __TEXT_END = .;
-  } > ram
-  .data :
-  {
-    __DATA_START = .;
-    *(.rodata*)
-    *(.data_4) *(.data_2) *(.data_1) *(.data) *(.data.*) *(.gnu.linkonce.d.*)
-    __DATA_END = .;
-    . = ALIGN(16);
-  } > ram
-  .bss (NOLOAD) :
-  {
-    __BSS_START = .;
-    *(.bss_4) *(.bss_2) *(.bss_1) *(.bss) *(COMMON) *(.bss.*) *(.gnu.linkonce.b.*)
-    __BSS_END = .;
-  } > ram
-  .stack (NOLOAD) :
-  {
-    . = ALIGN(4);
-    . += 0x6000;
-    __STACK_START = .;
-  } > ram
-  .heap (NOLOAD) :
-  {
-    . = ALIGN(4);
-    end = .;
-    _end = .;
-    __HEAP_START = .;
-    . += 0x200000; 
-    __HEAP_MAX = .;
-  } > ram
-  .comment        0 : { *(.comment) }
-  .debug_aranges  0 : { *(.debug_aranges) }
-  .debug_pubnames 0 : { *(.debug_pubnames) }
-  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
-  .debug_abbrev   0 : { *(.debug_abbrev) }
-  .debug_line     0 : { *(.debug_line) }
-  .debug_frame    0 : { *(.debug_frame) }
-  .debug_str      0 : { *(.debug_str) }
-  .debug_loc      0 : { *(.debug_loc) }
-  .debug_macinfo  0 : { *(.debug_macinfo) }
-}
-__DATA_IMAGE_START = LOADADDR(.data);
-"""
-for i, c in enumerate(cores):
-    with open('compile/core%d/main.c' % i, 'w') as f:
-        f.write('#include "rvex.h"\n')
-        f.write('#include "record.h"\n')
-        f.write('void %s_main(void);\n')
-        f.write('volatile char *record_ptr = (volatile char*)0x%08X;\n' % (0x1F000000 + 0x00100000*i))
-        f.write('int main(void) {\n')
-        f.write('    log_perfcount("*** After init ***");\n')
-        for b in c['benchmarks']:
-            f.write('    %s_main();\n' % b)
-            f.write('    log_perfcount("*** After %s ***");\n' % b)
-        f.write('    return 0;\n')
-        f.write('}\n')
-    with open('compile/core%d/config.x' % i, 'w') as f:
-        f.write(linkerscript % (i * 32*1024*1024))
-    with open('compile/core%d/Makefile' % i, 'w') as f:
-        f.write('\n')
-        f.write('TARGETS      = _start main record common bcopy floatlib %s\n' % ' '.join([b + '-sub' for b in c['benchmarks']]))
-        f.write('ISSUE_WIDTH  = %s\n' % c['compilerissuewidth'])
-        f.write('BORROW       = %s\n' % c['compilerborrow'])
-        f.write('LANECONFIG   = %s\n' % c['compilerlaneconfig'])
-        f.write('BUNDLE_ALIGN = %s\n' % c['compilerbundlealign'])
-        f.write('CFLAGS       = -O3\n')
-        f.write('\n')
-        f.write('include /home/user/workspace/assignment2/utils/compile-core.makefile\n')
-        f.write('\n')
-
-ln('/home/user/workspace/assignment2/utils/compile.makefile', 'compile/Makefile')
-
+# Link the toplevel makefile.
+ln('/home/user/workspace/tools/scripts/assignment2.makefile', 'Makefile')
