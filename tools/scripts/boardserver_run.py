@@ -88,9 +88,16 @@ try:
             except IOError:
                 pass
         
+        # Handle epic boardserver errors.
+        if status.startswith('ERROR'):
+            print(status)
+            local['rm']('-f', requestfile, statusfile, resultfile)
+            sys.exit(1)
+        
         # Print the current status.
         print('\033[A\033[1mWaiting for boardserver, ctrl+C to cancel... %d sec%s\033[0m\033[K' % (
             t, (', ' + status) if status else ''))
+        
 
 except KeyboardInterrupt:
     local['rm']('-f', requestfile, statusfile, resultfile)
