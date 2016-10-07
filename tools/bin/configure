@@ -34,9 +34,9 @@ mem_length = 0x02000000
 mem_end    = 0x1F000000
 
 # Log memory regions. Length is the amount allocated per core.
-log_start  = 0x1F000000
+log_start  = 0x3F000000
 log_length = 0x00100000
-log_end    = 0x20000000
+log_end    = 0x40000000
 
 for n, l in lines:
     if l == '[core]':
@@ -195,7 +195,14 @@ for c in cores:
             if log_start + log_length >= log_end:
                 print('Error: too many cores/contexts; out of memory.')
                 errors = True
-            resets.append(mem_start)
+            
+            # NOTE: the craziness below is a workaround for the 512MB ML605
+            # board. Here, address bit 26 is don't care... so we must map
+            # around these regions.
+            def remap(a):
+                return (a & 0x03FFFFFF) | ((a & 0xFC000000) << 1)
+            
+            resets.append(remap(mem_start))
             logs.append(log_start)
             mem_start += mem_length
             log_start += log_length
@@ -337,7 +344,7 @@ if not os.path.isdir('src'):
             contents.append('#include <rvex.h>')
             contents.append('')
             contents.append('// This variable is used by the debug message recorder. It must be initialized')
-            contents.append('// to 0x1F000000 + global_context_index * 0x100000.')
+            contents.append('// to 0x3F000000 + global_context_index * 0x100000.')
             contents.append('volatile char *record_ptr = (volatile char *)0x%08X;' % c['logRegions'][i])
             contents.append('')
             contents.append('int main(void) {')
