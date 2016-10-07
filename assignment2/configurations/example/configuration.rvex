@@ -31,7 +31,7 @@
 # Replace a-h with 0 or 1 to select your multiplier configuration. There must
 # be at least one multiplier. As you can see, the multiplier configurations of
 # the lane groups must match.
-CONFIG = 11:11
+CONFIG = 1111
 
 # Stop bit configuration. This value must be 2, 4, or 8, and must be less than
 # the issue width. The number of syllables in a bundle must be an integer
