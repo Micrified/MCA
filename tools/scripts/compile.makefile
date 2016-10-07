@@ -47,7 +47,7 @@ CFLAGS += -fmm=config.mm
 
 # Flags for vexparse.
 VPFLAGS += --resched
-VPFLAGS += --O1
+VPFLAGS += -O1
 VPFLAGS += --borrow $(BORROW)
 VPFLAGS += --config $(LANECONFIG)
 

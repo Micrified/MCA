@@ -85,6 +85,10 @@ class LinkRegister(Register):
 fixed_regs = {GeneralRegister(0, x) for x in itertools.chain(range(0, 11),
     range(56,64))}
 
+all_real_regs = ({GeneralRegister(0, x) for x in range(1,64)} |
+        {BranchRegister(0, x) for x in range(0,8)} |
+        {LinkRegister(0,0)})
+
 reg_re = re.compile(r"\$([rbl])(\d+)\.(\d+)")
 
 def parse_register(reg):

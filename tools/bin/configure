@@ -473,7 +473,7 @@ for ci, c in enumerate(cores):
         contents.append('RES: CopySrc.0      1')
         contents.append('RES: CopyDst.0      1')
         contents.append('REG: $r0            63')
-        contents.append('REG: $b0            8')
+        contents.append('REG: $b0            %d' % (4 if c['compiler-genbin'] else 8))
         contents.append('DEL: AluR.0         0')
         contents.append('DEL: Alu.0          0')
         contents.append('DEL: CmpBr.0        0')
