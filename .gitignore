@@ -20,6 +20,7 @@
 
 # ASSIGNMENT 2
 /assignment2/*
+!/assignment2/rvex.mm
 !/assignment2/powerstone
 !/assignment2/utils
 !/assignment2/configurations
