@@ -33,11 +33,11 @@ sim:
 
 .PHONY: synth
 synth:
-	@cd data/fpga && $(MAKE) sim
+	@cd data/fpga && $(MAKE) synth
 
 .PHONY: run
 run:
-	@cd data/fpga && $(MAKE) sim
+	@cd data/fpga && $(MAKE) run
 
 .PHONY: clean
 clean:
