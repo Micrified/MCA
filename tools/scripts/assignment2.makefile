@@ -44,3 +44,28 @@ clean:
 	@cd data/compile && $(MAKE) clean
 	@cd data/fpga && $(MAKE) clean
 
+PACK_SOURCES += configuration.rvex
+PACK_SOURCES += src/config.compile
+PACK_SOURCES += $(shell find src | grep "\.[hc]$$")
+PACK_SOURCES += data/output/fpga.bit
+PACK_SOURCES += results/area.txt
+PACK_SOURCES += results/energy.txt
+PACK_SOURCES += results/performance.txt
+PACK_SOURCES += results/timing.txt
+PACK_SOURCES += results/run1-core*.log
+PACK_SOURCES += results/run2-core*.log
+PACK_SOURCES += results/run3-core*.log
+PACK_SOURCES += results/run1-power.csv
+PACK_SOURCES += results/run2-power.csv
+PACK_SOURCES += results/run3-power.csv
+
+.PHONY: pack
+pack:
+	@if tar czf design.tgz $(PACK_SOURCES); then \
+		echo "Successfully packed your design to design.tgz."; \
+	else \
+		rm design.tgz; \
+		echo -e "\e[1;31mFailed to pack design because some files are missing. See above.\e[0m"; \
+		false; \
+	fi
+

@@ -700,6 +700,7 @@ contents = []
 contents.append('')
 for ci in range(len(cores)):
     contents.append('add wave -label "Core %d" -expand sim:/testbench/d3/rvsys_gen(%d)/rvsys_inst/rvex_block/rvex_inst/rv2sim' % (ci, ci))
+contents.append('run 2000 ms')
 contents.append('')
 with open(fname, 'w') as f:
     f.write('\n'.join(contents))
