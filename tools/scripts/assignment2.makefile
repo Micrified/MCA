@@ -22,6 +22,11 @@ help:
 	@echo "               from the other commands, running this and then trying again"
 	@echo "               is not a bad idea."
 	@echo ""
+	@echo "make pack    - packs all the files that you need to hand in at the end of"
+	@echo "               the assignment into a tgz archive. This will fail and"
+	@echo "               report an error if you're missing one or more required"
+	@echo "               files."
+	@echo ""
 
 .PHONY: compile
 compile:
