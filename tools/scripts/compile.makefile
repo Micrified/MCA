@@ -11,6 +11,12 @@ SRC_USER   = ../../../src
 SRC_UTILS  = $(WORKSPACE)/assignment2/utils
 SRC_RVRW   = $(WORKSPACE)/rvex-rewrite/examples/src
 
+# All header files in the source directory. These are used as dependencies for
+# all C sources. This adds more dependencies than strictly necessary, but it's
+# a lot easier than generating the dependencies properly, and this is intended
+# for only small programs anyway.
+HDR_DEPS   = $(shell find $(SRC_USER) | grep "\.h$$")
+
 # Where the compilation configuration file is.
 CCONFIG    = $(SRC_USER)/config.compile
 
@@ -66,7 +72,7 @@ LDFLAGS += -Tconfig.x
 all: out.srec out.disas
 
 # How to compile C files.
-%.s: $(SRC_USER)/%.c $(CCONFIG)
+%.s: $(SRC_USER)/%.c $(CCONFIG) $(HDR_DEPS)
 	$(CC) $(CFLAGS) `$(PARSECCFG) $*` $(patsubst %,-D%,$(DEFS)) -S $<
 	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
 %.s: $(SRC_UTILS)/%.c $(CCONFIG)
@@ -74,7 +80,7 @@ all: out.srec out.disas
 	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
 
 # How to preprocess hand-written assembly files.
-%.s: $(SRC_USER)/%.S $(CCONFIG)
+%.s: $(SRC_USER)/%.S $(CCONFIG) $(HDR_DEPS)
 	$(CC) $(CFLAGS) $(patsubst %,-D%,$(DEFS)) -E $< > $@
 	sed -i -e "s/^\(\.stab[sn][^\w].*\);$$/\1/" $@
 %.s: $(SRC_UTILS)/%.S $(CCONFIG)

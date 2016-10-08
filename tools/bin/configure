@@ -324,6 +324,29 @@ if not os.path.isdir('src'):
     with open(fname, 'w') as f:
         f.write('\n'.join(contents))
     
+    # Generate the intercore header file.
+    fname = 'src/intercore.h'
+    contents = []
+    contents.append('')
+    contents.append('#ifndef _INTERCORE_H_')
+    contents.append('#define _INTERCORE_H_')
+    contents.append('')
+    contents.append('// Data structure shared between all the cores.')
+    contents.append('typedef struct {')
+    contents.append('    ')
+    contents.append('    // Define your shared data here.')
+    contents.append('    int test;')
+    contents.append('    ')
+    contents.append('} intercore_t;')
+    contents.append('')
+    contents.append('// Access your shared data as "COM.<struct entry>".')
+    contents.append('#define COM (*((volatile intercore_t *)0x3E000000))')
+    contents.append('')
+    contents.append('#endif')
+    contents.append('')
+    with open(fname, 'w') as f:
+        f.write('\n'.join(contents))
+    
     # Generate the entry point C file for each core.
     first_core = True
     for ci, c in enumerate(cores):
@@ -336,6 +359,11 @@ if not os.path.isdir('src'):
             contents.append('')
             contents.append('// Declarations for the benchmark main() functions.')
             contents.append('#include "benchmarks.h"')
+            contents.append('')
+            contents.append('// If you want, you can use the struct defined in this file for inter-core')
+            contents.append('// communication through memory. You should not need this unless you are doing')
+            contents.append('// really fancy things though.')
+            contents.append('#include "intercore.h"')
             contents.append('')
             contents.append('// Debug output functions (puts, etc.; NO printf).')
             contents.append('#include <record.h>')
@@ -409,9 +437,9 @@ if not os.path.isdir('src'):
             if first_core:
                 if benchmarks:
                     contents.append('# Compile the benchmarks. The -sub parts tell the compiler to add the')
-                    contents.append('# benchmark name as a prefix to all global functions andvariables, in order')
+                    contents.append('# benchmark name as a prefix to all global functions and variables, in order')
                     contents.append('# to make them unique. For instance, the int main(void) function in the')
-                    contents.append('# %s.c file can be called using main_%s().' % (benchmarks[0], benchmarks[0]))
+                    contents.append('# %s.c file can be called using %s_main().' % (benchmarks[0], benchmarks[0]))
                     for b in benchmarks:
                         contents.append('%-25s -O3' % ('%s-sub' % b))
                     contents.append('')
