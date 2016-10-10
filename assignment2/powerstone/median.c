@@ -9,7 +9,9 @@
 #define imageHeight 64
 
 //declare image buffers 
-unsigned int median_image[imageWidth*imageHeight]; 
+unsigned int median_image[imageWidth*imageHeight] = {
+#include "lena_64x64.inc"
+};
 unsigned int median_result[imageWidth*imageHeight];
 
 //Note: this code must be compiled with the -autoline flag when using the HP compiler

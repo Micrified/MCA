@@ -10,7 +10,9 @@
 #define imageHeight 64
 
 //declare image buffers 
-unsigned int conv7_image[imageWidth*imageHeight]; 
+unsigned int conv7_image[imageWidth*imageHeight] = {
+#include "lena_64x64.inc"
+};
 unsigned int conv7_result[imageWidth*imageHeight];
 
 
