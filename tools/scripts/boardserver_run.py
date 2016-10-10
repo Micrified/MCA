@@ -68,9 +68,9 @@ local['rm']('-rf', tempdir)
 # Scan for status messages.
 t = 0
 try:
-    print('\033[1mWaiting for boardserver, ctrl+C to cancel...\033[0m')
+    print('\033[1mWaiting for boardserver, ctrl+C to cancel...\n\033[0m')
     complete = False
-    status = 'waiting for response'
+    status = 'waiting for response from server...'
     while not complete:
         
         # Wait for one second.
@@ -95,8 +95,8 @@ try:
             sys.exit(1)
         
         # Print the current status.
-        print('\033[A\033[1mWaiting for boardserver, ctrl+C to cancel... %d sec%s\033[0m\033[K' % (
-            t, (', ' + status) if status else ''))
+        print('\033[2A\033[1mWaiting for boardserver, ctrl+C to cancel... %d sec\n%s\033[0m\033[K' % (
+            t, ('Status: ' + status) if status else ''))
         
 
 except KeyboardInterrupt:
