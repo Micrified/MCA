@@ -216,7 +216,7 @@ for c in cores:
         #  - Bit 0: ALU
         laneconfig = int('1' * nc['compiler-width'], 16)
         #  - Bit 1: Multiplier
-        laneconfig |= int(nc['compiler-config'], 16) << 1
+        laneconfig |= int(nc['compiler-config'][::-1], 16) << 1
         #  - Bit 2: Memory
         mem = ['0'] * nc['numLanesPerGroup']
         mem[-(nc['memLaneRevIndex'] + 1)] = '4'
