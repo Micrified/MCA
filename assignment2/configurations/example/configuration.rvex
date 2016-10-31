@@ -34,12 +34,12 @@
 CONFIG = 1111
 
 # Stop bit configuration. This value must be 2, 4, or 8, and must be less than
-# the issue width. The number of syllables in a bundle must be an integer
-# multiple of this value. That is, if there is not enough instruction-level
-# parallelism, NOP syllables must be appended to the bundle to meet the
-# constraint. These "horizontal NOPs" do not slow the program down directly (as
-# the NOPs are executed in parallel to useful instructions), but they do
-# increase the size of the executable and thus affect instruction cache
+# or equal to the issue width. The number of syllables in a bundle must be an
+# integer multiple of this value. That is, if there is not enough
+# instruction-level parallelism, NOP syllables must be appended to the bundle
+# to meet the constraint. These "horizontal NOPs" do not slow the program down
+# directly (as the NOPs are executed in parallel to useful instructions), but
+# they do increase the size of the executable and thus affect instruction cache
 # behavior. Thus, for speed, you want this number as low as possible. The cost
 # is area.
 STOPBIT = 4

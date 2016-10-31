@@ -62,9 +62,6 @@ REG: $b0            8
 #-----------------------------------------------------------------------------#
 # See cluster 0 for what the parameters do.
 
-# NOTE: you can use 1, 2 or 4 clusters. This is specified using the -width flag
-# when calling 
-
 # Cluster 1.
 RES: IssueWidth.1   2
 RES: Alu.1          2
