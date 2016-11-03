@@ -45,9 +45,11 @@ CONFIG = 1111
 STOPBIT = 4
 
 # Instruction cache size in bytes. This must be a power of two, and must be at
-# least the issue width times 8. Append a k to specify the value in kiB.
+# least the issue width times 8 bytes (= 2 cache lines). Append a k to specify
+# the value in kiB. The practical upper limit is around 64k.
 ICACHE = 16k
 
 # Data cache size in bytes. This must be a power of two, and must be at least
-# 8. Append a k to specify the value in kiB.
+# 8 bytes (= 2 cache lines). Append a k to specify the value in kiB. The
+# practical upper limit is around 32k.
 DCACHE = 4k
