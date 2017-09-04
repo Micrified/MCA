@@ -18,7 +18,9 @@ OUTPUT_TWR = $(OUTPUT_DIR)/timing.twr
 
 RAM_SREC = ../compile/ram.srec
 
-BOARDSERVER_DIR = /home/user/boardserver
+#BOARDSERVER_CONFIG = /home/user/boardserver
+#BOARDSERVER_CONFIG = 131.180.174.77:8888:/home/user/workspace/.mcagroup
+BOARDSERVER_CONFIG = 130.161.38.16:1234:/home/user/workspace/.mcagroup
 
 .PHONY: all
 all: work
@@ -152,4 +154,4 @@ ise: work
 
 .PHONY: run
 run: compile
-	python3 $(SCRIPTS_DIR)/boardserver_run.py $(BOARDSERVER_DIR) $(OUTPUT_BIT) $(RAM_SREC) $(RESULTS_DIR)
+	python3 $(SCRIPTS_DIR)/boardserver_run.py $(BOARDSERVER_CONFIG) $(OUTPUT_BIT) $(RAM_SREC) $(RESULTS_DIR)

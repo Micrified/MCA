@@ -19,16 +19,17 @@ except ValueError:
 with open('/home/user/workspace/.mcagroup', 'w') as f:
     f.write(str(group))
 
-# Configure dropbox.
-dropbox_folder = '/home/user/.dropbox-folder/Dropbox'
-dropbox_group = 'group%02d' % group
-boardserver = '/home/user/boardserver'
-os.chdir(dropbox_folder)
-files = local['ls']().split()
-local['dropbox']['exclude']['add'](*files)
-local['dropbox']['exclude']['remove'](dropbox_group)
-local['rm']['-f'](boardserver)
-local['ln']['-s'](dropbox_folder + '/' + dropbox_group, boardserver)
+# Configure dropbox. Update: no need to do this now; we're now using the
+# websocket server.
+#dropbox_folder = '/home/user/.dropbox-folder/Dropbox'
+#dropbox_group = 'group%02d' % group
+#boardserver = '/home/user/boardserver'
+#os.chdir(dropbox_folder)
+#files = local['ls']().split()
+#local['dropbox']['exclude']['add'](*files)
+#local['dropbox']['exclude']['remove'](dropbox_group)
+#local['rm']['-f'](boardserver)
+#local['ln']['-s'](dropbox_folder + '/' + dropbox_group, boardserver)
 
 # Pick four benchmarks for the group. The first two of which will be used for
 # assignment 1, all four will be used for assignment 2.
