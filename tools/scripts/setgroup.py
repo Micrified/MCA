@@ -34,6 +34,13 @@ with open('/home/user/workspace/.mcagroup', 'w') as f:
 # Pick four benchmarks for the group. The first two of which will be used for
 # assignment 1, all four will be used for assignment 2.
 random.seed(group * 314159265)
+benchmarks_high = [
+    'convolution_3x3',
+    'convolution_5x5',
+    'convolution_7x7',
+    'greyscale',
+    'matrix'
+]
 benchmarks = [
     'adpcm',
     'bcnt',
@@ -52,21 +59,24 @@ benchmarks = [
     'matrix',
     'median',
     'pocsag',
-    'pocsag',
     'qurt',
     'ucbqsort',
     'v42',
     'x264'
 ]
+random.shuffle(benchmarks_high)
 random.shuffle(benchmarks)
 unique_benchmarks = set()
 picked_benchmarks = []
-for benchmark in benchmarks:
+for benchmark in benchmarks_high[:1] + benchmarks:
     if benchmark.split('_')[0] not in unique_benchmarks:
         unique_benchmarks.add(benchmark.split('_')[0])
         picked_benchmarks.append(benchmark)
         if len(picked_benchmarks) == 4:
             break
+
+if random.random() > 0.5:
+    picked_benchmarks[0], picked_benchmarks[1] = picked_benchmarks[1], picked_benchmarks[0]
 
 print('')
 def bm(i):
