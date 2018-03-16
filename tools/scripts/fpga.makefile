@@ -20,7 +20,7 @@ RAM_SREC = ../compile/ram.srec
 
 #BOARDSERVER_CONFIG = /home/user/boardserver
 #BOARDSERVER_CONFIG = 131.180.174.77:8888:/home/user/workspace/.mcagroup
-BOARDSERVER_CONFIG = 130.161.38.16:1234:/home/user/workspace/.mcagroup
+BOARDSERVER_CONFIG = ce-mcalab01.ewi.tudelft.nl:80:/home/user/workspace/.mcagroup
 
 .PHONY: all
 all: work
