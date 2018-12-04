@@ -41,6 +41,6 @@ int main (int argc, const char *argv[]) {
 		fprintf(stderr, "<IssueWidth> <MemLoad> <MemStore> <MemPft> <Alu> <Mpy> <Memory> <R0> <B0>\n");
 		exit(EXIT_FAILURE);
 	}
-	fprintf(stdout, format, argv[1],argv[2],argv[3],argv[4],argv[1],argv[5],argv[6],argv[7],argv[8],argv[9],argv[10]);
+	fprintf(stdout, format, argv[1],argv[2],argv[3],argv[4],argv[1],argv[5],argv[6],argv[7],argv[8],argv[9]);
 	return EXIT_SUCCESS;
 }
