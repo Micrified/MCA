@@ -1,6 +1,0 @@
-*.s
-*.o
-*.elf
-*.disas
-*.srec
-*.bin

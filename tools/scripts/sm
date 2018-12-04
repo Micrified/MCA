@@ -1,5 +1,0 @@
-echo Setting up ModelSim...
-source /opt/bin/modelsim-10.2a.sh
-export MTI_HOME=/opt/modelsim-10.2a/modeltech
-#alias vsim="LD_PRELOAD=\"/home/jeroen/scripts/libfreetype.so.6.7.2\" vsim"
-echo

@@ -1,4 +1,0 @@
-../common/common_pkg.vhd
-../utils/utils_pkg.vhd
-../utils/simUtils_pkg.vhd
-../utils/simUtils_scanner_pkg.vhd

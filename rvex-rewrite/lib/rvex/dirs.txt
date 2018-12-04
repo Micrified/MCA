@@ -1,8 +1,0 @@
-common
-utils
-bus
-core
-cache
-gaisler
-periph
-system

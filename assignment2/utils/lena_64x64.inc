@@ -1,1 +1,0 @@
-../powerstone/lena_64x64.inc

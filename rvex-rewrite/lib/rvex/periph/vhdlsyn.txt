@@ -1,9 +1,0 @@
-periph_uart_packetHandler.vhd
-periph_uart_packetBuffer.vhd
-periph_uart_packetControl.vhd
-periph_uart_fifo.vhd
-periph_uart_busIface.vhd
-periph_uart_switch.vhd
-periph_uart.vhd
-periph_irq.vhd
-periph_trace.vhd

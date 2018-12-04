@@ -1,1 +1,0 @@
-../powerstone/common.c

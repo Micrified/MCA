@@ -1,6 +1,0 @@
-echo Setting up Xilinx ISE 14.7...
-export XILINXD_LICENSE_FILE=/opt/license/xilinx.lic 
-source /opt/Xilinx/14.7/ISE_DS/settings64.sh
-unset KDE_SESSION_VERSION
-alias ise="LD_PRELOAD=/usr/lib64/libstdc++.so.6 ise"
-echo
