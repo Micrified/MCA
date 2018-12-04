@@ -33,7 +33,7 @@ with open('/home/user/workspace/.mcagroup', 'w') as f:
 
 # Pick four benchmarks for the group. The first two of which will be used for
 # assignment 1, all four will be used for assignment 2.
-random.seed(group * 314159265)
+random.seed(group * 2018)
 benchmarks_high = [
     'convolution_3x3',
     'convolution_5x5',
