@@ -20,6 +20,6 @@ int getFirstInteger () {
 
 
 int main (void) {
-	printf("%d\n", getFirstInteger());
+	printf("%d", getFirstInteger());
 	return EXIT_SUCCESS;
 }
