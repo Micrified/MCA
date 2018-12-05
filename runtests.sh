@@ -36,7 +36,7 @@ if [ "$1" ] && [ "$2" ] && [ "$3" ]; then
 
 		# Get cycle count from the results file and append.
 		./getFirstInteger < output-$program1.c/ta.log.000 >> results.txt
-		printf " " >> results.txt
+		echo -n " " >> results.txt
 		./getFirstInteger < output-$program2.c/ta.log.000 >> results.txt
 	done < $filename
 
