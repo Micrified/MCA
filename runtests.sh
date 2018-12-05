@@ -32,7 +32,7 @@ if [ "$1" ] && [ "$2" ] && [ "$3" ]; then
 
 		# Run the program (it will generate results in a folder).
 		run $program1 -O3
-		run $program2 -03
+		run $program2 -O3
 
 		# Get cycle count from the results file and append.
 		./getFirstInteger < output-$program1.c/ta.log.000 >> results.txt
