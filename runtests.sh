@@ -1,10 +1,11 @@
 #!/bin/bash
 
 
-if [ "$1" ] && [ "$2" ]; then
+if [ "$1" ] && [ "$2" ] && [ "$3" ]; then
 
 	filename=$1
-	program=$2
+	program1=$2
+	program2=$3
 
 	# For all lines in the input file ...
 	while read p; do
@@ -27,16 +28,19 @@ if [ "$1" ] && [ "$2" ]; then
 		printf "%s %s %s %s %s %s %s %s %s " "$a" "$b" "$c" "$d" "$e" "$f" "$g" "$h" "$i" >> results.txt
 
 		# Generate the configuration file for run.
-		./genconfig a b c d e f g h i > configurations.mm
+		./genconfig $a $b $c $d $e $f $g $h $i > configuration.mm
 
 		# Run the program (it will generate results in a folder).
-		run $program -O3
+		run $program1 -O3
+		run $program2 -03
 
 		# Get cycle count from the results file and append.
-		./getFirstInteger < output-$program.c/ta.log.000 >> results.txt
+		./getFirstInteger < output-$program1.c/ta.log.000 >> results.txt
+		printf " " >> results.txt
+		./getFirstInteger < output-$program2.c/ta.log.000 >> results.txt
 	done < $filename
 
 else
-	echo "Run with input: <permutation-file> <program-name>"
+	echo "Run with input: <permutation-file> <program-name-1> <program-name-2>"
 	exit 1
 fi
