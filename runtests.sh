@@ -38,7 +38,7 @@ if [ "$1" ] && [ "$2" ] && [ "$3" ]; then
 		./getFirstInteger < output-$program1.c/ta.log.000 >> results.txt
 		echo -n " " >> results.txt
 		./getFirstInteger < output-$program2.c/ta.log.000 >> results.txt
-		printf "\n"
+		printf "\n" >> results.txt
 	done < $filename
 
 else
